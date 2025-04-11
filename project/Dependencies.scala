@@ -9,7 +9,7 @@ object Dependencies {
   }
 
   val catsCore = Def.setting("org.typelevel" %%% "cats-core" % V.cats)
-  val catsEffect = Def.setting("org.typelevel" %%% "cats-effect-kernel" % V.catsEffect)
+  val catsEffect = Def.setting("org.typelevel" %%% "cats-effect" % V.catsEffect)
   val catsEffectTestkit =
     Def.setting("org.typelevel" %%% "cats-effect-kernel-testkit" % V.catsEffect % Test)
   val catsLaws = Def.setting("org.typelevel" %%% "cats-laws" % V.cats)
@@ -17,6 +17,7 @@ object Dependencies {
   val catsMtlLaws = Def.setting("org.typelevel" %%% "cats-mtl-laws" % V.catsMtl)
   val catsTestkit = Def.setting("org.typelevel" %%% "cats-testkit" % V.cats % Test)
   val munit = Def.setting("org.scalameta" %%% "munit" % "1.0.0" % Test)
+  val munitCatsEffect = Def.setting("org.typelevel" %%% "munit-cats-effect" % "2.1.0" % Test)
   val munitDiscipline = Def.setting("org.typelevel" %%% "discipline-munit" % "2.0.0" % Test)
 
   val kindProjector = compilerPlugin(

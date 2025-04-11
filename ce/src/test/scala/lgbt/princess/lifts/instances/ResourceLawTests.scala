@@ -1,15 +1,39 @@
 package lgbt.princess.lifts
 package instances
 
-import cats.Functor
+import cats.{Eq, Functor, ~>}
 import cats.data.EitherT
-import cats.effect.kernel.testkit.pure.PureConc
+import cats.effect.{IO, IOLocal}
 import cats.effect.kernel.{MonadCancelThrow, Resource}
+import cats.mtl.Local
+import lgbt.princess.lifts.instances.ResourceInstances._
 import lgbt.princess.lifts.laws.Unlift
 import lgbt.princess.lifts.laws.Unlift.Result
-//import lgbt.princess.lifts.laws.discipline.LiftValueTests
+import lgbt.princess.lifts.laws.discipline.{LiftKindTests/*, LiftScopeTests, LiftValueTests*/}
+import lgbt.princess.lifts.syntax.mtl._
+import org.scalacheck.{Arbitrary, Gen}
 
-class ResourceLawTests extends BaseSuite {
+class ResourceLawTests extends CESuite {
+  implicit val counterIO: Local[IO, Int] =
+    IOLocal(0).unsafeRunSync().asLocal
+  implicit val counterResource: Local[Resource[IO, *], Int] =
+    counterIO.liftTo[Resource[IO, *]]
+
+  implicit val arbitraryIOInt: Arbitrary[IO[Int]] =
+    Arbitrary(Gen.const(counterIO.ask[Int]))
+  implicit val arbitraryResourceIOInt: Arbitrary[Resource[IO, Int]] =
+    Arbitrary(Gen.const(counterResource.ask[Int]))
+
+  implicit val arbitraryIOIO: Arbitrary[IO ~> IO] =
+    Arbitrary {
+      Gen.const {
+        new (IO ~> IO) {
+          def apply[A](fa: IO[A]): IO[A] =
+            counterIO.local(fa)(_ + 1)
+        }
+      }
+    }
+
   implicit def unliftResource[F[_]](implicit F: MonadCancelThrow[F]): Unlift[F, Resource[F, *]] =
     new Unlift[F, Resource[F, *]] {
       def functor: Functor[F] = F
@@ -17,8 +41,23 @@ class ResourceLawTests extends BaseSuite {
         EitherT(value.use(a => F.pure(Right(a))))
     }
 
+  implicit def eqResource[F[_], A](implicit
+      F: MonadCancelThrow[F],
+      eqFA: Eq[F[A]]
+  ): Eq[Resource[F, A]] =
+    Eq.by(_.use(F.pure))
+
+  // these have ambiguous implicits for some reason
 //  checkAll(
-//    "LiftValue[F, Resource[F, *]]",
-//    LiftValueTests[PureConc[Int, *], Resource[PureConc[Int, *], *]].liftValue[String]
+//    "LiftValue[IO, Resource[IO, *]]",
+//    LiftValueTests[IO, Resource[IO, *]].liftValue[Int]
 //  )
+//  checkAll(
+//    "LiftScope[IO, Resource[IO, *]]",
+//    LiftScopeTests[IO, Resource[IO, *]].liftScope[Int]
+//  )
+  checkAll(
+    "LiftKind[IO, Resource[IO, *]]",
+    LiftKindTests[IO, Resource[IO, *]].liftKind[Int]
+  )
 }

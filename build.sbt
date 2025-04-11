@@ -58,6 +58,7 @@ lazy val sharedSettings = Def.settings(
     }
   },
   scalacOptions ++= Seq(
+    "-language:implicitConversions",
     "-feature",
     "-Werror",
   ),
@@ -72,7 +73,12 @@ lazy val sharedSettings = Def.settings(
 )
 
 lazy val lifts = tlCrossRootProject
-  .aggregate(core, laws)
+  .aggregate(
+    core,
+    laws,
+    mtl,
+    ce,
+  )
 
 lazy val core =
   crossProject(JVMPlatform, JSPlatform, NativePlatform)
@@ -103,23 +109,8 @@ lazy val laws =
       ),
     )
 
-lazy val ce =
-  crossProject(JVMPlatform, JSPlatform)
-    .crossType(CrossType.Pure)
-    .in(file("ce"))
-    .dependsOn(core, laws % "compile->test;test->test")
-    .settings(sharedSettings)
-    .settings(
-      name := "lifts-ce",
-      libraryDependencies ++= Seq(
-        catsEffect.value,
-        catsCore.value % Test,
-        catsEffectTestkit.value,
-      )
-    )
-
 lazy val mtl =
-  crossProject(JVMPlatform, JSPlatform, NativePlatform)
+  crossProject(JVMPlatform, JSPlatform)
     .crossType(CrossType.Pure)
     .in(file("mtl"))
     .dependsOn(core)
@@ -130,5 +121,25 @@ lazy val mtl =
         catsCore.value,
         catsMtl.value,
         catsMtlLaws.value,
+        catsEffect.value % Test,
+        munitCatsEffect.value,
+        munitDiscipline.value,
+      )
+    )
+
+lazy val ce =
+  crossProject(JVMPlatform, JSPlatform)
+    .crossType(CrossType.Pure)
+    .in(file("ce"))
+    .dependsOn(core, laws % "compile->test", mtl % "compile->test")
+    .settings(sharedSettings)
+    .settings(
+      name := "lifts-ce",
+      libraryDependencies ++= Seq(
+        catsEffect.value,
+        catsCore.value % Test,
+        //        catsEffectTestkit.value,
+        catsMtl.value % Test,
+        munitCatsEffect.value,
       )
     )
