@@ -14,22 +14,20 @@ import lgbt.princess.lifts.syntax.mtl._
 import org.scalacheck.{Arbitrary, Gen}
 
 class ResourceLawTests extends CESuite {
-  implicit val counterIO: Local[IO, Int] =
+  implicit val counter: Local[IO, Int] =
     IOLocal(0).unsafeRunSync().asLocal
-  implicit val counterResource: Local[Resource[IO, *], Int] =
-    counterIO.liftTo[Resource[IO, *]]
 
   implicit val arbitraryIOInt: Arbitrary[IO[Int]] =
-    Arbitrary(Gen.const(counterIO.ask[Int]))
+    Arbitrary(Gen.const(counter.ask[Int]))
   implicit val arbitraryResourceIOInt: Arbitrary[Resource[IO, Int]] =
-    Arbitrary(Gen.const(counterResource.ask[Int]))
+    Arbitrary(Gen.const(counter.liftTo[Resource[IO, *]].ask[Int]))
 
   implicit val arbitraryIOIO: Arbitrary[IO ~> IO] =
     Arbitrary {
       Gen.const {
         new (IO ~> IO) {
           def apply[A](fa: IO[A]): IO[A] =
-            counterIO.local(fa)(_ + 1)
+            counter.local(fa)(_ + 1)
         }
       }
     }
