@@ -19,7 +19,7 @@ object LiftKind {
   implicit def id[F[_]]: LiftKind[F, F] =
     new LiftKind[F, F] {
       def liftF[A](value: F[A]): F[A] = value
-      def liftK: F ~> F = FunctionK.id
+      val liftK: F ~> F = FunctionK.id
       def liftScopeApply[A](scope: F ~> F)(value: F[A]): F[A] = scope(value)
       override def liftScope(scope: F ~> F): F ~> F = scope
     }

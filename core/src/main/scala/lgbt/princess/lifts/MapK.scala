@@ -3,6 +3,8 @@ package lgbt.princess.lifts
 import cats.data.{EitherT, IorT, Kleisli, OptionT, StateT, WriterT}
 import cats.{Functor, ~>}
 
+import scala.annotation.unused
+
 trait MapK[F[_], G[_], H[_], I[_]] {
   def mapK[A](value: H[A])(f: F ~> G): I[A]
 
@@ -10,15 +12,12 @@ trait MapK[F[_], G[_], H[_], I[_]] {
     new (H ~> I) {
       def apply[A](fa: H[A]): I[A] = mapK(fa)(f)
     }
+
+  final def liftScope(scope: F ~> G)(implicit @unused ev0: F =:= G, @unused ev1: H =:= I): H ~> I =
+    liftFunctionK(scope)
 }
 
 object MapK {
-
-  /** Identity type for wrapping a higher-kinded type. */
-  type IdT[F[_], A] = F[A]
-
-  /** A partially-applied 3-parameter type, with the middle parameter applied. */
-  type PA3[T[_[_], _, _], C] = { type λ[F[_], A] = T[F, C, A] }
 
   /**
    * A `MapK` where the types `H` and `I` are derived from `F` and `G` using the type-constructor
@@ -26,11 +25,13 @@ object MapK {
    */
   type Derived[F[_], G[_], W[_[_], _]] = MapK[F, G, W[F, *], W[G, *]]
 
-  implicit def id[F[_], G[_]]: Derived[F, G, IdT] =
-    new Derived[F, G, IdT] {
-      def mapK[A](value: IdT[F, A])(f: F ~> G): IdT[G, A] = f(value)
-      override def liftFunctionK(f: F ~> G): IdT[F, *] ~> IdT[G, *] =
-        f.asInstanceOf[IdT[F, *] ~> IdT[G, *]]
+  /** A partially-applied 3-parameter type, with the middle parameter applied. */
+  type PA3[T[_[_], _, _], C] = { type λ[F[_], A] = T[F, C, A] }
+
+  implicit def id[F[_], G[_]]: MapK[F, G, F, G] =
+    new MapK[F, G, F, G] {
+      def mapK[A](value: F[A])(f: F ~> G): G[A] = f(value)
+      override def liftFunctionK(f: F ~> G): F ~> G = f
     }
 
   implicit def optionT[F[_], G[_]]: Derived[F, G, OptionT] =
@@ -57,6 +58,7 @@ object MapK {
         value.mapK(f)
     }
 
+  // TODO: move to an inner object
   implicit def stateT[F[_]: Functor, G[_], S]: Derived[F, G, PA3[StateT, S]#λ] =
     new Derived[F, G, PA3[StateT, S]#λ] {
       def mapK[A](value: StateT[F, S, A])(f: F ~> G): StateT[G, S, A] =

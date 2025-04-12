@@ -28,7 +28,7 @@ trait LiftValue[F[_], G[_]] {
   def liftK: F ~> G
 }
 
-object LiftValue {
+object LiftValue extends LowPriorityLiftValueImplicits {
 
   /**
    * An instance that derives [[LiftValue.liftF `liftF`]] from [[LiftValue.liftK `liftK`]].
@@ -99,4 +99,16 @@ object LiftValue {
       def liftF[A](value: F[A]): WriterT[F, L, A] = WriterT.liftF(value)
       val liftK: F ~> WriterT[F, L, *] = WriterT.liftK
     }
+}
+
+sealed trait LowPriorityLiftValueImplicits {
+  implicit def liftValue1FromLiftKind2[F[_], G[_], H[_], I[_]](implicit
+      lk2: LiftKind2[F, G, H, I]
+  ): LiftValue[F, H] =
+    lk2.liftValue1
+
+  implicit def liftValue2FromLiftKind2[F[_], G[_], H[_], I[_]](implicit
+      lk2: LiftKind2[F, G, H, I]
+  ): LiftValue[G, I] =
+    lk2.liftValue2
 }
