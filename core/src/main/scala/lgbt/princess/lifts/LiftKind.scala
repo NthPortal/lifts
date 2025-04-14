@@ -7,8 +7,8 @@ import cats.{Applicative, Functor, Monoid, ~>}
 import scala.annotation.implicitNotFound
 
 /**
- * Lifts values and scope transformations from the higher-kinded type `F` to the higher-kinded
- * type `G`.
+ * Lifts values and scope transformations from the higher-kinded type `F` to the higher-kinded type
+ * `G`.
  *
  * TODO: document issue with `StateT` implicit
  */
@@ -16,6 +16,9 @@ import scala.annotation.implicitNotFound
 trait LiftKind[F[_], G[_]] extends LiftValue[F, G] with LiftScope[F, G]
 
 object LiftKind {
+
+  def apply[F[_], G[_]](implicit lk: LiftKind[F, G]): LiftKind[F, G] = lk
+
   implicit def id[F[_]]: LiftKind[F, F] =
     new LiftKind[F, F] {
       def liftF[A](value: F[A]): F[A] = value

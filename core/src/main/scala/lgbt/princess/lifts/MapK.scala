@@ -19,11 +19,17 @@ trait MapK[F[_], G[_], H[_], I[_]] {
 
 object MapK {
 
+  def apply[F[_], G[_], H[_], I[_]](implicit mk: MapK[F, G, H, I]): MapK[F, G, H, I] = mk
+
   /**
    * A `MapK` where the types `H` and `I` are derived from `F` and `G` using the type-constructor
    * `W`.
    */
   type Derived[F[_], G[_], W[_[_], _]] = MapK[F, G, W[F, *], W[G, *]]
+
+  object Derived {
+    def apply[F[_], G[_], W[_[_], _]](implicit mk: Derived[F, G, W]): Derived[F, G, W] = mk
+  }
 
   /** A partially-applied 3-parameter type, with the middle parameter applied. */
   type PA3[T[_[_], _, _], C] = { type λ[F[_], A] = T[F, C, A] }

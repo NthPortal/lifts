@@ -9,6 +9,9 @@ trait LiftKind1[F[_], G[_]] extends LiftValue[F, G] with LiftScopeAlt[F, G] {
 }
 
 object LiftKind1 extends LowPriorityLiftKind1Implicits {
+
+  def apply[F[_], G[_]](implicit lk1: LiftKind1[F, G]): LiftKind1[F, G] = lk1
+
   implicit def id[F[_]]: LiftKind1[F, F] =
     new LiftKind1[F, F] {
       def liftF[A](value: F[A]): F[A] = value

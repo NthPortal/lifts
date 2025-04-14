@@ -30,6 +30,8 @@ trait LiftValue[F[_], G[_]] {
 
 object LiftValue extends LowPriorityLiftValueImplicits0 {
 
+  def apply[F[_], G[_]](implicit lv: LiftValue[F, G]): LiftValue[F, G] = lv
+
   /**
    * An instance that derives [[LiftValue.liftF `liftF`]] from [[LiftValue.liftK `liftK`]].
    */

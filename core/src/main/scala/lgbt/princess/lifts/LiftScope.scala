@@ -35,6 +35,9 @@ trait LiftScope[F[_], G[_]] {
 }
 
 object LiftScope {
+
+  def apply[F[_], G[_]](implicit ls: LiftScope[F, G]): LiftScope[F, G] = ls
+
   implicit def id[F[_]]: LiftScope[F, F] =
     new LiftScope[F, F] {
       def liftScopeApply[A](scope: F ~> F)(value: F[A]): F[A] = scope(value)

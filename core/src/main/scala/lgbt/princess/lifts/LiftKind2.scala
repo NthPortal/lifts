@@ -11,11 +11,18 @@ trait LiftKind2[F[_], G[_], H[_], I[_]] extends MapK[F, G, H, I] {
 
 object LiftKind2 {
 
+  def apply[F[_], G[_], H[_], I[_]](implicit lk2: LiftKind2[F, G, H, I]): LiftKind2[F, G, H, I] =
+    lk2
+
   /**
    * A `LiftKind2` where the types `H` and `I` are derived from `F` and `G` using the
    * type-constructor `W`.
    */
   type Derived[F[_], G[_], W[_[_], _]] = LiftKind2[F, G, W[F, *], W[G, *]]
+
+  object Derived {
+    def apply[F[_], G[_], W[_[_], _]](implicit lk2: Derived[F, G, W]): Derived[F, G, W] = lk2
+  }
 
   /** A partially-applied 3-parameter type, with the middle parameter applied. */
   type PA3[T[_[_], _, _], C] = MapK.PA3[T, C]
