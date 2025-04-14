@@ -28,7 +28,7 @@ trait LiftValue[F[_], G[_]] {
   def liftK: F ~> G
 }
 
-object LiftValue extends LowPriorityLiftValueImplicits {
+object LiftValue extends LowPriorityLiftValueImplicits0 {
 
   /**
    * An instance that derives [[LiftValue.liftF `liftF`]] from [[LiftValue.liftK `liftK`]].
@@ -101,12 +101,14 @@ object LiftValue extends LowPriorityLiftValueImplicits {
     }
 }
 
-sealed trait LowPriorityLiftValueImplicits {
+sealed trait LowPriorityLiftValueImplicits0 extends LowPriorityLiftValueImplicits1 {
   implicit def liftValue1FromLiftKind2[F[_], G[_], H[_], I[_]](implicit
       lk2: LiftKind2[F, G, H, I]
   ): LiftValue[F, H] =
     lk2.liftValue1
+}
 
+sealed trait LowPriorityLiftValueImplicits1 {
   implicit def liftValue2FromLiftKind2[F[_], G[_], H[_], I[_]](implicit
       lk2: LiftKind2[F, G, H, I]
   ): LiftValue[G, I] =

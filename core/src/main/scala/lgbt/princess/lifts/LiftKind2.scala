@@ -18,7 +18,7 @@ object LiftKind2 {
   type Derived[F[_], G[_], W[_[_], _]] = LiftKind2[F, G, W[F, *], W[G, *]]
 
   /** A partially-applied 3-parameter type, with the middle parameter applied. */
-  type PA3[T[_[_], _, _], C] = { type λ[F[_], A] = T[F, C, A] }
+  type PA3[T[_[_], _, _], C] = MapK.PA3[T, C]
 
   implicit def id[F[_], G[_]]: LiftKind2[F, G, F, G] =
     new LiftKind2[F, G, F, G] {
