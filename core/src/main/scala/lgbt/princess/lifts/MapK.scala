@@ -31,8 +31,11 @@ object MapK {
     def apply[F[_], G[_], W[_[_], _]](implicit mk: Derived[F, G, W]): Derived[F, G, W] = mk
   }
 
+  /** Type lambda implementation of [[`PA3`]]. */
+  private type PA3_[T[_[_], _, _], C] = { type L[F[_], A] = T[F, C, A] }
+
   /** A partially-applied 3-parameter type, with the middle parameter applied. */
-  type PA3[T[_[_], _, _], C] = { type λ[F[_], A] = T[F, C, A] }
+  type PA3[T[_[_], _, _], C] = PA3_[T, C]#L
 
   implicit def id[F[_], G[_]]: MapK[F, G, F, G] =
     new MapK[F, G, F, G] {
@@ -46,33 +49,33 @@ object MapK {
         value.mapK(f)
     }
 
-  implicit def eitherT[F[_], G[_], L]: Derived[F, G, PA3[EitherT, L]#λ] =
-    new Derived[F, G, PA3[EitherT, L]#λ] {
+  implicit def eitherT[F[_], G[_], L]: Derived[F, G, PA3[EitherT, L]] =
+    new Derived[F, G, PA3[EitherT, L]] {
       def mapK[A](value: EitherT[F, L, A])(f: F ~> G): EitherT[G, L, A] =
         value.mapK(f)
     }
 
-  implicit def iorT[F[_], G[_], L]: Derived[F, G, PA3[IorT, L]#λ] =
-    new Derived[F, G, PA3[IorT, L]#λ] {
+  implicit def iorT[F[_], G[_], L]: Derived[F, G, PA3[IorT, L]] =
+    new Derived[F, G, PA3[IorT, L]] {
       def mapK[A](value: IorT[F, L, A])(f: F ~> G): IorT[G, L, A] =
         value.mapK(f)
     }
 
-  implicit def kleisli[F[_], G[_], A]: Derived[F, G, PA3[Kleisli, A]#λ] =
-    new Derived[F, G, PA3[Kleisli, A]#λ] {
+  implicit def kleisli[F[_], G[_], A]: Derived[F, G, PA3[Kleisli, A]] =
+    new Derived[F, G, PA3[Kleisli, A]] {
       def mapK[B](value: Kleisli[F, A, B])(f: F ~> G): Kleisli[G, A, B] =
         value.mapK(f)
     }
 
   // TODO: move to an inner object
-  implicit def stateT[F[_]: Functor, G[_], S]: Derived[F, G, PA3[StateT, S]#λ] =
-    new Derived[F, G, PA3[StateT, S]#λ] {
+  implicit def stateT[F[_]: Functor, G[_], S]: Derived[F, G, PA3[StateT, S]] =
+    new Derived[F, G, PA3[StateT, S]] {
       def mapK[A](value: StateT[F, S, A])(f: F ~> G): StateT[G, S, A] =
         value.mapK(f)
     }
 
-  implicit def writerT[F[_], G[_], L]: Derived[F, G, PA3[WriterT, L]#λ] =
-    new Derived[F, G, PA3[WriterT, L]#λ] {
+  implicit def writerT[F[_], G[_], L]: Derived[F, G, PA3[WriterT, L]] =
+    new Derived[F, G, PA3[WriterT, L]] {
       def mapK[A](value: WriterT[F, L, A])(f: F ~> G): WriterT[G, L, A] =
         value.mapK(f)
     }
