@@ -3,10 +3,86 @@ package lgbt.princess.lifts
 import cats.Applicative
 import cats.data.*
 
-import scala.annotation.unused
-
 object ImplicitSummoningTests {
-  @unused def test1[F[_]: Applicative, G[_]: Applicative](): Unit = {
+
+  def `instances for Option and List`(): Unit = {
+    // LiftValue
+    LiftValue[Option, Option]
+    LiftValue[Option, OptionT[Option, *]]
+    LiftValue[Option, EitherT[Option, Int, *]]
+    LiftValue[Option, IorT[Option, Int, *]]
+    LiftValue[Option, Kleisli[Option, Int, *]]
+    LiftValue[Option, StateT[Option, Int, *]]
+    LiftValue[Option, WriterT[Option, Int, *]]
+
+    // LiftScope
+    LiftScope[Option, Option]
+    LiftScope[Option, OptionT[Option, *]]
+    LiftScope[Option, EitherT[Option, Int, *]]
+    LiftScope[Option, IorT[Option, Int, *]]
+    LiftScope[Option, Kleisli[Option, Int, *]]
+    LiftScope[Option, StateT[Option, Int, *]] // TODO: fix
+    LiftScope[Option, WriterT[Option, Int, *]]
+
+    // LiftKind
+    LiftKind[Option, Option]
+    LiftKind[Option, OptionT[Option, *]]
+    LiftKind[Option, EitherT[Option, Int, *]]
+    LiftKind[Option, IorT[Option, Int, *]]
+    LiftKind[Option, Kleisli[Option, Int, *]]
+    LiftKind[Option, StateT[Option, Int, *]]
+    LiftKind[Option, WriterT[Option, Int, *]]
+
+    // MapK
+    MapK[Option, List, Option, List] // identity
+    MapK[Option, List, OptionT[Option, *], OptionT[List, *]]
+    MapK.Derived[Option, List, OptionT]
+    MapK[Option, List, EitherT[Option, Int, *], EitherT[List, Int, *]]
+    MapK.Derived[Option, List, MapK.PA3[EitherT, Int]#λ]
+    MapK[Option, List, IorT[Option, Int, *], IorT[List, Int, *]]
+    MapK.Derived[Option, List, MapK.PA3[IorT, Int]#λ]
+    MapK[Option, List, Kleisli[Option, Int, *], Kleisli[List, Int, *]]
+    MapK.Derived[Option, List, MapK.PA3[Kleisli, Int]#λ]
+    MapK[Option, List, StateT[Option, Int, *], StateT[List, Int, *]]
+    MapK.Derived[Option, List, MapK.PA3[StateT, Int]#λ]
+    MapK[Option, List, WriterT[Option, Int, *], WriterT[List, Int, *]]
+    MapK.Derived[Option, List, MapK.PA3[WriterT, Int]#λ]
+
+    // LiftScopeAlt
+    LiftScopeAlt[Option, Option]
+    LiftScopeAlt[Option, OptionT[Option, *]]
+    LiftScopeAlt[Option, EitherT[Option, Int, *]]
+    LiftScopeAlt[Option, IorT[Option, Int, *]]
+    LiftScopeAlt[Option, Kleisli[Option, Int, *]]
+    LiftScopeAlt[Option, StateT[Option, Int, *]]
+    LiftScopeAlt[Option, WriterT[Option, Int, *]]
+
+    // LiftKind1
+    LiftKind1[Option, Option]
+    LiftKind1[Option, OptionT[Option, *]]
+    LiftKind1[Option, EitherT[Option, Int, *]]
+    LiftKind1[Option, IorT[Option, Int, *]]
+    LiftKind1[Option, Kleisli[Option, Int, *]]
+    LiftKind1[Option, StateT[Option, Int, *]]
+    LiftKind1[Option, WriterT[Option, Int, *]]
+
+    // LiftKind2
+    LiftKind2[Option, List, Option, List] // identity
+    LiftKind2[Option, List, OptionT[Option, *], OptionT[List, *]]
+    LiftKind2.Derived[Option, List, OptionT]
+    LiftKind2[Option, List, EitherT[Option, Int, *], EitherT[List, Int, *]]
+    LiftKind2.Derived[Option, List, LiftKind2.PA3[EitherT, Int]#λ]
+    LiftKind2[Option, List, IorT[Option, Int, *], IorT[List, Int, *]]
+    LiftKind2.Derived[Option, List, LiftKind2.PA3[IorT, Int]#λ]
+    LiftKind2[Option, List, Kleisli[Option, Int, *], Kleisli[List, Int, *]]
+    LiftKind2.Derived[Option, List, LiftKind2.PA3[Kleisli, Int]#λ]
+    LiftKind2[Option, List, StateT[Option, Int, *], StateT[List, Int, *]]
+    LiftKind2.Derived[Option, List, LiftKind2.PA3[StateT, Int]#λ]
+    LiftKind2[Option, List, WriterT[Option, Int, *], WriterT[List, Int, *]]
+    LiftKind2.Derived[Option, List, LiftKind2.PA3[WriterT, Int]#λ]
+  }
+
+  def `instances for abstract types`[F[_]: Applicative, G[_]: Applicative](): Unit = {
     // LiftValue
     LiftValue[F, F]
     LiftValue[F, OptionT[F, *]]
@@ -83,15 +159,18 @@ object ImplicitSummoningTests {
     LiftKind2.Derived[F, G, LiftKind2.PA3[WriterT, Int]#λ]
   }
 
-  @unused def test2[F[_], G[_], H[_], I[_]](): Unit = {
-    implicit def lk2: LiftKind2[F, G, H, I] = ???
+  def `instances from LiftKind2 of 4 abstract types`[F[_], G[_], H[_], I[_]]()(implicit
+      lk2: LiftKind2[F, G, H, I]
+  ): Unit = {
     LiftValue[F, H]
     LiftValue[G, I]
     MapK[F, G, H, I] // via inheritance
   }
 
-  @unused def test3[F[_], G[_]](): Unit = {
-    implicit def lk2: LiftKind2[F, F, G, G] = ???
+  def `instances from LiftKind2 of 2 abstract types`[F[_], G[_]]()(implicit
+      lk2: LiftKind2[F, F, G, G]
+  ): Unit = {
+    LiftValue[F, G]
     LiftKind1[F, G]
     LiftScopeAlt[F, G] // via inheritance
   }
