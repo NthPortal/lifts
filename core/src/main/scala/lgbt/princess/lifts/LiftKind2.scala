@@ -24,9 +24,6 @@ object LiftKind2 {
     def apply[F[_], G[_], W[_[_], _]](implicit lk2: Derived[F, G, W]): Derived[F, G, W] = lk2
   }
 
-  /** A partially-applied 3-parameter type, with the middle parameter applied. */
-  type PA3[T[_[_], _, _], C] = MapK.PA3[T, C]
-
   implicit def id[F[_], G[_]]: LiftKind2[F, G, F, G] =
     new LiftKind2[F, G, F, G] {
       val liftValue1: LiftValue[F, F] = LiftValue.id
@@ -43,24 +40,24 @@ object LiftKind2 {
         value.mapK(f)
     }
 
-  implicit def eitherT[F[_]: Functor, G[_]: Functor, L]: Derived[F, G, PA3[EitherT, L]] =
-    new Derived[F, G, PA3[EitherT, L]] {
+  implicit def eitherT[F[_]: Functor, G[_]: Functor, L]: Derived[F, G, EitherT[*[?], L, *]] =
+    new Derived[F, G, EitherT[*[?], L, *]] {
       val liftValue1: LiftValue[F, EitherT[F, L, *]] = LiftValue.eitherT
       val liftValue2: LiftValue[G, EitherT[G, L, *]] = LiftValue.eitherT
       def mapK[A](value: EitherT[F, L, A])(f: F ~> G): EitherT[G, L, A] =
         value.mapK(f)
     }
 
-  implicit def iorT[F[_]: Functor, G[_]: Functor, L]: Derived[F, G, PA3[IorT, L]] =
-    new Derived[F, G, PA3[IorT, L]] {
+  implicit def iorT[F[_]: Functor, G[_]: Functor, L]: Derived[F, G, IorT[*[?], L, *]] =
+    new Derived[F, G, IorT[*[?], L, *]] {
       val liftValue1: LiftValue[F, IorT[F, L, *]] = LiftValue.iorT
       val liftValue2: LiftValue[G, IorT[G, L, *]] = LiftValue.iorT
       def mapK[A](value: IorT[F, L, A])(f: F ~> G): IorT[G, L, A] =
         value.mapK(f)
     }
 
-  implicit def kleisli[F[_], G[_], A]: Derived[F, G, PA3[Kleisli, A]] =
-    new Derived[F, G, PA3[Kleisli, A]] {
+  implicit def kleisli[F[_], G[_], A]: Derived[F, G, Kleisli[*[?], A, *]] =
+    new Derived[F, G, Kleisli[*[?], A, *]] {
       val liftValue1: LiftValue[F, Kleisli[F, A, *]] = LiftValue.kleisli
       val liftValue2: LiftValue[G, Kleisli[G, A, *]] = LiftValue.kleisli
       def mapK[B](value: Kleisli[F, A, B])(f: F ~> G): Kleisli[G, A, B] =
@@ -68,8 +65,8 @@ object LiftKind2 {
     }
 
   // TODO: move to an inner object
-  implicit def stateT[F[_]: Applicative, G[_]: Applicative, S]: Derived[F, G, PA3[StateT, S]] =
-    new Derived[F, G, PA3[StateT, S]] {
+  implicit def stateT[F[_]: Applicative, G[_]: Applicative, S]: Derived[F, G, StateT[*[?], S, *]] =
+    new Derived[F, G, StateT[*[?], S, *]] {
       val liftValue1: LiftValue[F, StateT[F, S, *]] = LiftValue.stateT
       val liftValue2: LiftValue[G, StateT[G, S, *]] = LiftValue.stateT
       def mapK[A](value: StateT[F, S, A])(f: F ~> G): StateT[G, S, A] =
@@ -77,8 +74,8 @@ object LiftKind2 {
     }
 
   implicit def writerT[F[_]: Applicative, G[_]: Applicative, L: Monoid]
-      : Derived[F, G, PA3[WriterT, L]] =
-    new Derived[F, G, PA3[WriterT, L]] {
+      : Derived[F, G, WriterT[*[?], L, *]] =
+    new Derived[F, G, WriterT[*[?], L, *]] {
       val liftValue1: LiftValue[F, WriterT[F, L, *]] = LiftValue.writerT
       val liftValue2: LiftValue[G, WriterT[G, L, *]] = LiftValue.writerT
       def mapK[A](value: WriterT[F, L, A])(f: F ~> G): WriterT[G, L, A] =
