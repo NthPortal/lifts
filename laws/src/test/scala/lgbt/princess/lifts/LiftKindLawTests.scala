@@ -3,6 +3,7 @@ package lgbt.princess.lifts
 import cats.data._
 import cats.laws.discipline.arbitrary._
 import cats.~>
+import lgbt.princess.lifts.laws.Unlift
 import lgbt.princess.lifts.laws.discipline.LiftKindTests
 import org.scalacheck.{Arbitrary, Gen}
 
@@ -31,6 +32,17 @@ class LiftKindLawTests extends BaseSuite {
       "LiftKind[List, WriterT[List, Int, *]]",
       LiftKindTests[List, WriterT[List, Int, *]].liftKind[String]
     )
+
+    locally {
+      implicit val lift: LiftKind[List, OptionT[IorT[List, Int, *], *]] =
+        LiftKind.iorT[List, Int].andThen(LiftKind.optionT[IorT[List, Int, *]])
+      implicit val unlift: Unlift[OptionT[IorT[List, Int, *], *], List] =
+        Unlift.optionT[IorT[List, Int, *]].andThen(Unlift.iorT[List, Int])
+      checkAll(
+        "LiftKind[List, OptionT[IorT[List, Int, *], *]]",
+        LiftKindTests[List, OptionT[IorT[List, Int, *], *]].liftKind[String]
+      )
+    }
   }
 
   locally {

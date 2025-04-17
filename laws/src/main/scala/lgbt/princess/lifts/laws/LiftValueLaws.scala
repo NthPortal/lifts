@@ -7,7 +7,7 @@ import cats.laws.IsEqArrow
 
 trait LiftValueLaws[F[_], G[_]] {
   implicit def liftInstance: LiftValue[F, G]
-  implicit def unliftInstance: Unlift[F, G]
+  implicit def unliftInstance: Unlift[G, F]
   implicit def functor: Functor[F] = unliftInstance.functor
 
   // internal laws:
@@ -21,10 +21,10 @@ trait LiftValueLaws[F[_], G[_]] {
 object LiftValueLaws {
   def apply[F[_], G[_]](implicit
       lift: LiftValue[F, G],
-      unlift: Unlift[F, G],
+      unlift: Unlift[G, F],
   ): LiftValueLaws[F, G] =
     new LiftValueLaws[F, G] {
       implicit val liftInstance: LiftValue[F, G] = lift
-      implicit val unliftInstance: Unlift[F, G] = unlift
+      implicit val unliftInstance: Unlift[G, F] = unlift
     }
 }

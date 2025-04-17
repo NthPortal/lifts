@@ -21,10 +21,10 @@ trait LiftKindLaws[F[_], G[_]] extends LiftValueLaws[F, G] with LiftScopeLaws[F,
 object LiftKindLaws {
   def apply[F[_], G[_]](implicit
       lift: LiftKind[F, G],
-      unlift: Unlift[F, G],
+      unlift: Unlift[G, F],
   ): LiftKindLaws[F, G] =
     new LiftKindLaws[F, G] {
       implicit val liftInstance: LiftKind[F, G] = lift
-      implicit val unliftInstance: Unlift[F, G] = unlift
+      implicit val unliftInstance: Unlift[G, F] = unlift
     }
 }

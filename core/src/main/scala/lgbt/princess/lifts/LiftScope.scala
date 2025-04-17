@@ -32,9 +32,23 @@ trait LiftScope[F[_], G[_]] {
     new (G ~> G) {
       def apply[A](fa: G[A]): G[A] = liftScopeApply(scope)(fa)
     }
+
+  def andThen[H[_]](that: LiftScope[G, H]): LiftScope[F, H] =
+    new LiftScope.Composed(this, that)
+
+  def compose[E[_]](that: LiftScope[E, F]): LiftScope[E, G] =
+    new LiftScope.Composed(that, this)
 }
 
 object LiftScope {
+
+  private final class Composed[F[_], G[_], H[_]](inner: LiftScope[F, G], outer: LiftScope[G, H])
+      extends LiftScope[F, H] {
+    def liftScopeApply[A](scope: F ~> F)(value: H[A]): H[A] =
+      outer.liftScopeApply(inner.liftScope(scope))(value)
+    override def liftScope(scope: F ~> F): H ~> H =
+      outer.liftScope(inner.liftScope(scope))
+  }
 
   def apply[F[_], G[_]](implicit ls: LiftScope[F, G]): LiftScope[F, G] = ls
 

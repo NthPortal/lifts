@@ -12,12 +12,12 @@ import org.scalacheck.Arbitrary
 
 class LiftIOLawTests extends CESuite {
   // evidence only for compile-time proof
-  implicit def unliftIO[F[_]: LiftIO]: Unlift[IO, F] =
-    new Unlift[IO, F] {
+  implicit def unliftIO[F[_]: LiftIO]: Unlift[F, IO] =
+    new Unlift[F, IO] {
       def functor: Functor[IO] = implicitly
       def unlift[A](value: F[A]): Result[IO, A] =
         value match {
-          case io: IO[A @unchecked] => Unlift.success(io)
+          case io: IO[A @unchecked] => Unlift.success(io) // TODO: insufficient
           case other =>
             EitherT.left {
               IO {

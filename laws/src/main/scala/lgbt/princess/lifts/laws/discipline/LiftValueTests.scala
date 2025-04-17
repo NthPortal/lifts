@@ -10,7 +10,7 @@ import org.typelevel.discipline.Laws
 
 trait LiftValueTests[F[_], G[_]] extends Laws {
   implicit val liftInstance: LiftValue[F, G]
-  implicit val unliftInstance: Unlift[F, G]
+  implicit val unliftInstance: Unlift[G, F]
 
   def laws: LiftValueLaws[F, G] = LiftValueLaws[F, G]
 
@@ -29,10 +29,10 @@ trait LiftValueTests[F[_], G[_]] extends Laws {
 object LiftValueTests {
   def apply[F[_], G[_]](implicit
       lift: LiftValue[F, G],
-      unlift: Unlift[F, G],
+      unlift: Unlift[G, F],
   ): LiftValueTests[F, G] =
     new LiftValueTests[F, G] {
       implicit val liftInstance: LiftValue[F, G] = lift
-      implicit val unliftInstance: Unlift[F, G] = unlift
+      implicit val unliftInstance: Unlift[G, F] = unlift
     }
 }

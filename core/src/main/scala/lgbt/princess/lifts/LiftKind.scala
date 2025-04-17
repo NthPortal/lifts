@@ -13,9 +13,25 @@ import scala.annotation.implicitNotFound
  * TODO: document issue with `StateT` implicit
  */
 @implicitNotFound("no way defined to lift values and scopes from ${F} to ${G}")
-trait LiftKind[F[_], G[_]] extends LiftValue[F, G] with LiftScope[F, G]
+trait LiftKind[F[_], G[_]] extends LiftValue[F, G] with LiftScope[F, G] {
+  def andThen[H[_]](that: LiftKind[G, H]): LiftKind[F, H] =
+    new LiftKind.Composed(this, that)
+
+  def compose[E[_]](that: LiftKind[E, F]): LiftKind[E, G] =
+    new LiftKind.Composed(that, this)
+}
 
 object LiftKind {
+
+  private final class Composed[F[_], G[_], H[_]](inner: LiftKind[F, G], outer: LiftKind[G, H])
+      extends LiftKind[F, H] {
+    def liftF[A](value: F[A]): H[A] = outer.liftF(inner.liftF(value))
+    val liftK: F ~> H = inner.liftK.andThen(outer.liftK)
+    def liftScopeApply[A](scope: F ~> F)(value: H[A]): H[A] =
+      outer.liftScopeApply(inner.liftScope(scope))(value)
+    override def liftScope(scope: F ~> F): H ~> H =
+      outer.liftScope(inner.liftScope(scope))
+  }
 
   def apply[F[_], G[_]](implicit lk: LiftKind[F, G]): LiftKind[F, G] = lk
 

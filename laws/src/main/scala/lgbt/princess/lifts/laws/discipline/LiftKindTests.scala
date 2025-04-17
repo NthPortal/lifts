@@ -10,7 +10,7 @@ import org.typelevel.discipline.Laws
 
 trait LiftKindTests[F[_], G[_]] extends LiftValueTests[F, G] with LiftScopeTests[F, G] {
   implicit val liftInstance: LiftKind[F, G]
-  implicit val unliftInstance: Unlift[F, G]
+  implicit val unliftInstance: Unlift[G, F]
 
   override def laws: LiftKindLaws[F, G] = LiftKindLaws[F, G]
 
@@ -35,11 +35,11 @@ trait LiftKindTests[F[_], G[_]] extends LiftValueTests[F, G] with LiftScopeTests
 object LiftKindTests {
   def apply[F[_], G[_]](implicit
       lift: LiftKind[F, G],
-      unlift: Unlift[F, G],
+      unlift: Unlift[G, F],
   ): LiftKindTests[F, G] =
     new LiftKindTests[F, G] {
       implicit val liftInstance: LiftKind[F, G] = lift
-      implicit val unliftInstance: Unlift[F, G] = unlift
+      implicit val unliftInstance: Unlift[G, F] = unlift
     }
 
   implicit def arbitraryFunctionKListList: Arbitrary[List ~> List] =

@@ -26,9 +26,23 @@ trait LiftValue[F[_], G[_]] {
    *   This method is usually best implemented by a `liftK` method on `G`'s companion object.
    */
   def liftK: F ~> G
+
+  /** @return an instance that lifts `F` to `G` and then `G` to `H` */
+  def andThen[H[_]](that: LiftValue[G, H]): LiftValue[F, H] =
+    new LiftValue.Composed(this, that)
+
+  /** @return an instance that lifts `E` to `F` and then `F` to `G` */
+  def compose[E[_]](that: LiftValue[E, F]): LiftValue[E, G] =
+    new LiftValue.Composed(that, this)
 }
 
 object LiftValue extends LowPriorityLiftValueImplicits0 {
+
+  private final class Composed[F[_], G[_], H[_]](inner: LiftValue[F, G], outer: LiftValue[G, H])
+      extends LiftValue[F, H] {
+    def liftF[A](value: F[A]): H[A] = outer.liftF(inner.liftF(value))
+    val liftK: F ~> H = inner.liftK.andThen(outer.liftK)
+  }
 
   def apply[F[_], G[_]](implicit lv: LiftValue[F, G]): LiftValue[F, G] = lv
 

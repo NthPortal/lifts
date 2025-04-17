@@ -9,7 +9,7 @@ import cats.mtl.Local
 import lgbt.princess.lifts.instances.ResourceInstances._
 import lgbt.princess.lifts.laws.Unlift
 import lgbt.princess.lifts.laws.Unlift.Result
-import lgbt.princess.lifts.laws.discipline.{LiftKindTests/*, LiftScopeTests, LiftValueTests*/}
+import lgbt.princess.lifts.laws.discipline.{LiftKindTests /*, LiftScopeTests, LiftValueTests*/}
 import lgbt.princess.lifts.syntax.mtl._
 import org.scalacheck.{Arbitrary, Gen}
 
@@ -32,8 +32,8 @@ class ResourceLawTests extends CESuite {
       }
     }
 
-  implicit def unliftResource[F[_]](implicit F: MonadCancelThrow[F]): Unlift[F, Resource[F, *]] =
-    new Unlift[F, Resource[F, *]] {
+  implicit def unliftResource[F[_]](implicit F: MonadCancelThrow[F]): Unlift[Resource[F, *], F] =
+    new Unlift[Resource[F, *], F] {
       def functor: Functor[F] = F
       def unlift[A](value: Resource[F, A]): Result[F, A] =
         EitherT(value.use(a => F.pure(Right(a))))
@@ -48,7 +48,7 @@ class ResourceLawTests extends CESuite {
   // these have ambiguous implicits for some reason
 //  checkAll(
 //    "LiftValue[IO, Resource[IO, *]]",
-//    LiftValueTests[IO, Resource[IO, *]].liftValue[Int]
+//    LiftValueTests[IO, Resource[IO, *]].liftValue[Int]3
 //  )
 //  checkAll(
 //    "LiftScope[IO, Resource[IO, *]]",
