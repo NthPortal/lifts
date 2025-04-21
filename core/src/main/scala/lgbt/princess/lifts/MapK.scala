@@ -12,15 +12,15 @@ trait MapK[F[_], G[_], H[_], I[_]] {
     }
 
   def andThen[J[_], K[_]](that: MapK[H, I, J, K]): MapK[F, G, J, K] =
-    new MapK.Composed(this, that)
+    MapK.Composed(this, that)
 
   def compose[D[_], E[_]](that: MapK[D, E, F, G]): MapK[D, E, H, I] =
-    new MapK.Composed(that, this)
+    MapK.Composed(that, this)
 }
 
 object MapK {
 
-  private final class Composed[F[_], G[_], H[_], I[_], J[_], K[_]](
+  private[this] final class Composed[F[_], G[_], H[_], I[_], J[_], K[_]] private (
       inner: MapK[F, G, H, I],
       outer: MapK[H, I, J, K],
   ) extends MapK[F, G, J, K] {
@@ -30,58 +30,83 @@ object MapK {
       outer.liftFunctionK(inner.liftFunctionK(f))
   }
 
-  def apply[F[_], G[_], H[_], I[_]](implicit mk: MapK[F, G, H, I]): MapK[F, G, H, I] = mk
-
-  /**
-   * A `MapK` where the types `H` and `I` are derived from `F` and `G` using the type-constructor
-   * `W`.
-   */
-  type Derived[F[_], G[_], W[_[_], _]] = MapK[F, G, W[F, *], W[G, *]]
-
-  object Derived {
-    def apply[F[_], G[_], W[_[_], _]](implicit mk: Derived[F, G, W]): Derived[F, G, W] = mk
+  private object Composed {
+    def apply[F[_], G[_], H[_], I[_], J[_], K[_]](
+        inner: MapK[F, G, H, I],
+        outer: MapK[H, I, J, K],
+    ): MapK[F, G, J, K] = {
+      if (inner.isInstanceOf[Identity]) outer.asInstanceOf[MapK[F, G, J, K]]
+      else if (outer.isInstanceOf[Identity]) inner.asInstanceOf[MapK[F, G, J, K]]
+      else new Composed(inner, outer)
+    }
   }
 
+  def apply[F[_], G[_], H[_], I[_]](implicit mk: MapK[F, G, H, I]): MapK[F, G, H, I] = mk
+
   implicit def id[F[_], G[_]]: MapK[F, G, F, G] =
-    new MapK[F, G, F, G] {
+    new MapK[F, G, F, G] with Identity {
       def mapK[A](value: F[A])(f: F ~> G): G[A] = f(value)
       override def liftFunctionK(f: F ~> G): F ~> G = f
     }
 
-  implicit def optionT[F[_], G[_]]: Derived[F, G, OptionT] =
-    new Derived[F, G, OptionT] {
-      def mapK[A](value: OptionT[F, A])(f: F ~> G): OptionT[G, A] =
-        value.mapK(f)
+  implicit def optionT[F[_], G[_], H[_], I[_]](implicit
+      inner: MapK[F, G, H, I]
+  ): MapK[F, G, OptionT[H, *], OptionT[I, *]] =
+    inner.andThen {
+      new MapK[H, I, OptionT[H, *], OptionT[I, *]] {
+        def mapK[A](value: OptionT[H, A])(f: H ~> I): OptionT[I, A] =
+          value.mapK(f)
+      }
     }
 
-  implicit def eitherT[F[_], G[_], L]: Derived[F, G, EitherT[*[_], L, *]] =
-    new Derived[F, G, EitherT[*[_], L, *]] {
-      def mapK[A](value: EitherT[F, L, A])(f: F ~> G): EitherT[G, L, A] =
-        value.mapK(f)
+  implicit def eitherT[F[_], G[_], H[_], I[_], L](implicit
+      inner: MapK[F, G, H, I]
+  ): MapK[F, G, EitherT[H, L, *], EitherT[I, L, *]] =
+    inner.andThen {
+      new MapK[H, I, EitherT[H, L, *], EitherT[I, L, *]] {
+        def mapK[A](value: EitherT[H, L, A])(f: H ~> I): EitherT[I, L, A] =
+          value.mapK(f)
+      }
     }
 
-  implicit def iorT[F[_], G[_], L]: Derived[F, G, IorT[*[_], L, *]] =
-    new Derived[F, G, IorT[*[_], L, *]] {
-      def mapK[A](value: IorT[F, L, A])(f: F ~> G): IorT[G, L, A] =
-        value.mapK(f)
+  implicit def iorT[F[_], G[_], H[_], I[_], L](implicit
+      inner: MapK[F, G, H, I]
+  ): MapK[F, G, IorT[H, L, *], IorT[I, L, *]] =
+    inner.andThen {
+      new MapK[H, I, IorT[H, L, *], IorT[I, L, *]] {
+        def mapK[A](value: IorT[H, L, A])(f: H ~> I): IorT[I, L, A] =
+          value.mapK(f)
+      }
     }
 
-  implicit def kleisli[F[_], G[_], A]: Derived[F, G, Kleisli[*[_], A, *]] =
-    new Derived[F, G, Kleisli[*[_], A, *]] {
-      def mapK[B](value: Kleisli[F, A, B])(f: F ~> G): Kleisli[G, A, B] =
-        value.mapK(f)
+  implicit def kleisli[F[_], G[_], H[_], I[_], A](implicit
+      inner: MapK[F, G, H, I]
+  ): MapK[F, G, Kleisli[H, A, *], Kleisli[I, A, *]] =
+    inner.andThen {
+      new MapK[H, I, Kleisli[H, A, *], Kleisli[I, A, *]] {
+        def mapK[B](value: Kleisli[H, A, B])(f: H ~> I): Kleisli[I, A, B] =
+          value.mapK(f)
+      }
     }
 
   // TODO: move to an inner object
-  implicit def stateT[F[_]: Functor, G[_], S]: Derived[F, G, StateT[*[_], S, *]] =
-    new Derived[F, G, StateT[*[_], S, *]] {
-      def mapK[A](value: StateT[F, S, A])(f: F ~> G): StateT[G, S, A] =
-        value.mapK(f)
+  implicit def stateT[F[_], G[_], H[_]: Functor, I[_], S](implicit
+      inner: MapK[F, G, H, I]
+  ): MapK[F, G, StateT[H, S, *], StateT[I, S, *]] =
+    inner.andThen {
+      new MapK[H, I, StateT[H, S, *], StateT[I, S, *]] {
+        def mapK[A](value: StateT[H, S, A])(f: H ~> I): StateT[I, S, A] =
+          value.mapK(f)
+      }
     }
 
-  implicit def writerT[F[_], G[_], L]: Derived[F, G, WriterT[*[_], L, *]] =
-    new Derived[F, G, WriterT[*[_], L, *]] {
-      def mapK[A](value: WriterT[F, L, A])(f: F ~> G): WriterT[G, L, A] =
-        value.mapK(f)
+  implicit def writerT[F[_], G[_], H[_], I[_], L](implicit
+      inner: MapK[F, G, H, I]
+  ): MapK[F, G, WriterT[H, L, *], WriterT[I, L, *]] =
+    inner.andThen {
+      new MapK[H, I, WriterT[H, L, *], WriterT[I, L, *]] {
+        def mapK[A](value: WriterT[H, L, A])(f: H ~> I): WriterT[I, L, A] =
+          value.mapK(f)
+      }
     }
 }

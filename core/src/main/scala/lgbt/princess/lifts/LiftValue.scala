@@ -29,19 +29,27 @@ trait LiftValue[F[_], G[_]] {
 
   /** @return an instance that lifts `F` to `G` and then `G` to `H` */
   def andThen[H[_]](that: LiftValue[G, H]): LiftValue[F, H] =
-    new LiftValue.Composed(this, that)
+    LiftValue.Composed(this, that)
 
   /** @return an instance that lifts `E` to `F` and then `F` to `G` */
   def compose[E[_]](that: LiftValue[E, F]): LiftValue[E, G] =
-    new LiftValue.Composed(that, this)
+    LiftValue.Composed(that, this)
 }
 
 object LiftValue extends LowPriorityLiftValueImplicits0 {
-
-  private final class Composed[F[_], G[_], H[_]](inner: LiftValue[F, G], outer: LiftValue[G, H])
-      extends LiftValue[F, H] {
+  private[this] final class Composed[F[_], G[_], H[_]] private (
+      inner: LiftValue[F, G],
+      outer: LiftValue[G, H]
+  ) extends LiftValue[F, H] {
     def liftF[A](value: F[A]): H[A] = outer.liftF(inner.liftF(value))
     val liftK: F ~> H = inner.liftK.andThen(outer.liftK)
+  }
+
+  private object Composed {
+    def apply[F[_], G[_], H[_]](inner: LiftValue[F, G], outer: LiftValue[G, H]): LiftValue[F, H] =
+      if (inner.isInstanceOf[Identity]) outer.asInstanceOf[LiftValue[F, H]]
+      else if (outer.isInstanceOf[Identity]) inner.asInstanceOf[LiftValue[F, H]]
+      else new Composed(inner, outer)
   }
 
   def apply[F[_], G[_]](implicit lv: LiftValue[F, G]): LiftValue[F, G] = lv
@@ -75,45 +83,69 @@ object LiftValue extends LowPriorityLiftValueImplicits0 {
     }
 
   implicit def id[F[_]]: LiftValue[F, F] =
-    new LiftValue[F, F] {
+    new LiftValue[F, F] with Identity {
       def liftF[A](value: F[A]): F[A] = value
       val liftK: F ~> F = FunctionK.id
     }
 
-  implicit def optionT[F[_]: Functor]: LiftValue[F, OptionT[F, *]] =
-    new LiftValue[F, OptionT[F, *]] {
-      def liftF[A](value: F[A]): OptionT[F, A] = OptionT.liftF(value)
-      val liftK: F ~> OptionT[F, *] = OptionT.liftK
+  implicit def optionT[F[_], G[_]: Functor](implicit
+      inner: LiftValue[F, G]
+  ): LiftValue[F, OptionT[G, *]] =
+    inner.andThen {
+      new LiftValue[G, OptionT[G, *]] {
+        def liftF[A](value: G[A]): OptionT[G, A] = OptionT.liftF(value)
+        val liftK: G ~> OptionT[G, *] = OptionT.liftK
+      }
     }
 
-  implicit def eitherT[F[_]: Functor, L]: LiftValue[F, EitherT[F, L, *]] =
-    new LiftValue[F, EitherT[F, L, *]] {
-      def liftF[A](value: F[A]): EitherT[F, L, A] = EitherT.liftF(value)
-      val liftK: F ~> EitherT[F, L, *] = EitherT.liftK
+  implicit def eitherT[F[_], G[_]: Functor, L](implicit
+      inner: LiftValue[F, G]
+  ): LiftValue[F, EitherT[G, L, *]] =
+    inner.andThen {
+      new LiftValue[G, EitherT[G, L, *]] {
+        def liftF[A](value: G[A]): EitherT[G, L, A] = EitherT.liftF(value)
+        val liftK: G ~> EitherT[G, L, *] = EitherT.liftK
+      }
     }
 
-  implicit def iorT[F[_]: Functor, L]: LiftValue[F, IorT[F, L, *]] =
-    new LiftValue[F, IorT[F, L, *]] {
-      def liftF[A](value: F[A]): IorT[F, L, A] = IorT.right(value)
-      val liftK: F ~> IorT[F, L, *] = IorT.liftK
+  implicit def iorT[F[_], G[_]: Functor, L](implicit
+      inner: LiftValue[F, G]
+  ): LiftValue[F, IorT[G, L, *]] =
+    inner.andThen {
+      new LiftValue[G, IorT[G, L, *]] {
+        def liftF[A](value: G[A]): IorT[G, L, A] = IorT.right(value)
+        val liftK: G ~> IorT[G, L, *] = IorT.liftK
+      }
     }
 
-  implicit def kleisli[F[_], A]: LiftValue[F, Kleisli[F, A, *]] =
-    new LiftValue[F, Kleisli[F, A, *]] {
-      def liftF[B](value: F[B]): Kleisli[F, A, B] = Kleisli.liftF(value)
-      val liftK: F ~> Kleisli[F, A, *] = Kleisli.liftK
+  implicit def kleisli[F[_], G[_], A](implicit
+      inner: LiftValue[F, G]
+  ): LiftValue[F, Kleisli[G, A, *]] =
+    inner.andThen {
+      new LiftValue[G, Kleisli[G, A, *]] {
+        def liftF[B](value: G[B]): Kleisli[G, A, B] = Kleisli.liftF(value)
+        val liftK: G ~> Kleisli[G, A, *] = Kleisli.liftK
+      }
     }
 
-  implicit def stateT[F[_]: Applicative, S]: LiftValue[F, StateT[F, S, *]] =
-    new LiftValue[F, StateT[F, S, *]] {
-      def liftF[A](value: F[A]): StateT[F, S, A] = StateT.liftF(value)
-      val liftK: F ~> StateT[F, S, *] = StateT.liftK
+  implicit def stateT[F[_], G[_]: Applicative, S](implicit
+      inner: LiftValue[F, G]
+  ): LiftValue[F, StateT[G, S, *]] =
+    inner.andThen {
+      new LiftValue[G, StateT[G, S, *]] {
+        def liftF[A](value: G[A]): StateT[G, S, A] = StateT.liftF(value)
+        val liftK: G ~> StateT[G, S, *] = StateT.liftK
+      }
     }
 
-  implicit def writerT[F[_]: Applicative, L: Monoid]: LiftValue[F, WriterT[F, L, *]] =
-    new LiftValue[F, WriterT[F, L, *]] {
-      def liftF[A](value: F[A]): WriterT[F, L, A] = WriterT.liftF(value)
-      val liftK: F ~> WriterT[F, L, *] = WriterT.liftK
+  implicit def writerT[F[_], G[_]: Applicative, L: Monoid](implicit
+      inner: LiftValue[F, G]
+  ): LiftValue[F, WriterT[G, L, *]] =
+    inner.andThen {
+      new LiftValue[G, WriterT[G, L, *]] {
+        def liftF[A](value: G[A]): WriterT[G, L, A] = WriterT.liftF(value)
+        val liftK: G ~> WriterT[G, L, *] = WriterT.liftK
+      }
     }
 }
 

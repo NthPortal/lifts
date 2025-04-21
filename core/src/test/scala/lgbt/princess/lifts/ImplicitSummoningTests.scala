@@ -36,17 +36,11 @@ object ImplicitSummoningTests {
     // MapK
     MapK[Option, List, Option, List] // identity
     MapK[Option, List, OptionT[Option, *], OptionT[List, *]]
-    MapK.Derived[Option, List, OptionT]
     MapK[Option, List, EitherT[Option, Int, *], EitherT[List, Int, *]]
-    MapK.Derived[Option, List, EitherT[*[_], Int, *]]
     MapK[Option, List, IorT[Option, Int, *], IorT[List, Int, *]]
-    MapK.Derived[Option, List, IorT[*[_], Int, *]]
     MapK[Option, List, Kleisli[Option, Int, *], Kleisli[List, Int, *]]
-    MapK.Derived[Option, List, Kleisli[*[_], Int, *]]
     MapK[Option, List, StateT[Option, Int, *], StateT[List, Int, *]]
-    MapK.Derived[Option, List, StateT[*[_], Int, *]]
     MapK[Option, List, WriterT[Option, Int, *], WriterT[List, Int, *]]
-    MapK.Derived[Option, List, WriterT[*[_], Int, *]]
 
     // LiftScopeAlt
     LiftScopeAlt[Option, Option]
@@ -69,17 +63,11 @@ object ImplicitSummoningTests {
     // LiftKind2
     LiftKind2[Option, List, Option, List] // identity
     LiftKind2[Option, List, OptionT[Option, *], OptionT[List, *]]
-    LiftKind2.Derived[Option, List, OptionT]
     LiftKind2[Option, List, EitherT[Option, Int, *], EitherT[List, Int, *]]
-    LiftKind2.Derived[Option, List, EitherT[*[_], Int, *]]
     LiftKind2[Option, List, IorT[Option, Int, *], IorT[List, Int, *]]
-    LiftKind2.Derived[Option, List, IorT[*[_], Int, *]]
     LiftKind2[Option, List, Kleisli[Option, Int, *], Kleisli[List, Int, *]]
-    LiftKind2.Derived[Option, List, Kleisli[*[_], Int, *]]
     LiftKind2[Option, List, StateT[Option, Int, *], StateT[List, Int, *]]
-    LiftKind2.Derived[Option, List, StateT[*[_], Int, *]]
     LiftKind2[Option, List, WriterT[Option, Int, *], WriterT[List, Int, *]]
-    LiftKind2.Derived[Option, List, WriterT[*[_], Int, *]]
   }
 
   def `instances for abstract types`[F[_]: Applicative, G[_]: Applicative](): Unit = {
@@ -113,17 +101,11 @@ object ImplicitSummoningTests {
     // MapK
     MapK[F, G, F, G] // identity
     MapK[F, G, OptionT[F, *], OptionT[G, *]]
-    MapK.Derived[F, G, OptionT]
     MapK[F, G, EitherT[F, Int, *], EitherT[G, Int, *]]
-    MapK.Derived[F, G, EitherT[*[_], Int, *]]
     MapK[F, G, IorT[F, Int, *], IorT[G, Int, *]]
-    MapK.Derived[F, G, IorT[*[_], Int, *]]
     MapK[F, G, Kleisli[F, Int, *], Kleisli[G, Int, *]]
-    MapK.Derived[F, G, Kleisli[*[_], Int, *]]
     MapK[F, G, StateT[F, Int, *], StateT[G, Int, *]]
-    MapK.Derived[F, G, StateT[*[_], Int, *]]
     MapK[F, G, WriterT[F, Int, *], WriterT[G, Int, *]]
-    MapK.Derived[F, G, WriterT[*[_], Int, *]]
 
     // LiftScopeAlt
     LiftScopeAlt[F, F]
@@ -146,17 +128,11 @@ object ImplicitSummoningTests {
     // LiftKind2
     LiftKind2[F, G, F, G] // identity
     LiftKind2[F, G, OptionT[F, *], OptionT[G, *]]
-    LiftKind2.Derived[F, G, OptionT]
     LiftKind2[F, G, EitherT[F, Int, *], EitherT[G, Int, *]]
-    LiftKind2.Derived[F, G, EitherT[*[_], Int, *]]
     LiftKind2[F, G, IorT[F, Int, *], IorT[G, Int, *]]
-    LiftKind2.Derived[F, G, IorT[*[_], Int, *]]
     LiftKind2[F, G, Kleisli[F, Int, *], Kleisli[G, Int, *]]
-    LiftKind2.Derived[F, G, Kleisli[*[_], Int, *]]
     LiftKind2[F, G, StateT[F, Int, *], StateT[G, Int, *]]
-    LiftKind2.Derived[F, G, StateT[*[_], Int, *]]
     LiftKind2[F, G, WriterT[F, Int, *], WriterT[G, Int, *]]
-    LiftKind2.Derived[F, G, WriterT[*[_], Int, *]]
   }
 
   def `instances from LiftKind2 of 4 abstract types`[F[_], G[_], H[_], I[_]]()(implicit

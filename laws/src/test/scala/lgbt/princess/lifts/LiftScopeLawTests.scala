@@ -32,4 +32,8 @@ class LiftScopeLawTests extends BaseSuite {
     "LiftScope[List, WriterT[List, Int, *]]",
     LiftScopeTests[List, WriterT[List, Int, *]].liftScope[String]
   )
+  checkAll(
+    "LiftScope[List, OptionT[IorT[List, Int, *], *]]",
+    LiftScopeTests[List, OptionT[IorT[List, Int, *], *]].liftScope[String]
+  )
 }

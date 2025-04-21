@@ -15,16 +15,18 @@ import scala.annotation.implicitNotFound
 @implicitNotFound("no way defined to lift values and scopes from ${F} to ${G}")
 trait LiftKind[F[_], G[_]] extends LiftValue[F, G] with LiftScope[F, G] {
   def andThen[H[_]](that: LiftKind[G, H]): LiftKind[F, H] =
-    new LiftKind.Composed(this, that)
+    LiftKind.Composed(this, that)
 
   def compose[E[_]](that: LiftKind[E, F]): LiftKind[E, G] =
-    new LiftKind.Composed(that, this)
+    LiftKind.Composed(that, this)
 }
 
 object LiftKind {
 
-  private final class Composed[F[_], G[_], H[_]](inner: LiftKind[F, G], outer: LiftKind[G, H])
-      extends LiftKind[F, H] {
+  private[this] final class Composed[F[_], G[_], H[_]] private (
+      inner: LiftKind[F, G],
+      outer: LiftKind[G, H]
+  ) extends LiftKind[F, H] {
     def liftF[A](value: F[A]): H[A] = outer.liftF(inner.liftF(value))
     val liftK: F ~> H = inner.liftK.andThen(outer.liftK)
     def liftScopeApply[A](scope: F ~> F)(value: H[A]): H[A] =
@@ -33,62 +35,93 @@ object LiftKind {
       outer.liftScope(inner.liftScope(scope))
   }
 
+  private object Composed {
+    def apply[F[_], G[_], H[_]](inner: LiftKind[F, G], outer: LiftKind[G, H]): LiftKind[F, H] =
+      if (inner.isInstanceOf[Identity]) outer.asInstanceOf[LiftKind[F, H]]
+      else if (outer.isInstanceOf[Identity]) inner.asInstanceOf[LiftKind[F, H]]
+      else new Composed(inner, outer)
+  }
+
   def apply[F[_], G[_]](implicit lk: LiftKind[F, G]): LiftKind[F, G] = lk
 
   implicit def id[F[_]]: LiftKind[F, F] =
-    new LiftKind[F, F] {
+    new LiftKind[F, F] with Identity {
       def liftF[A](value: F[A]): F[A] = value
       val liftK: F ~> F = FunctionK.id
       def liftScopeApply[A](scope: F ~> F)(value: F[A]): F[A] = scope(value)
       override def liftScope(scope: F ~> F): F ~> F = scope
     }
 
-  implicit def optionT[F[_]: Functor]: LiftKind[F, OptionT[F, *]] =
-    new LiftKind[F, OptionT[F, *]] {
-      def liftF[A](value: F[A]): OptionT[F, A] = OptionT.liftF(value)
-      val liftK: F ~> OptionT[F, *] = OptionT.liftK
-      def liftScopeApply[A](scope: F ~> F)(value: OptionT[F, A]): OptionT[F, A] =
-        value.mapK(scope)
+  implicit def optionT[F[_], G[_]: Functor](implicit
+      inner: LiftKind[F, G]
+  ): LiftKind[F, OptionT[G, *]] =
+    inner.andThen {
+      new LiftKind[G, OptionT[G, *]] {
+        def liftF[A](value: G[A]): OptionT[G, A] = OptionT.liftF(value)
+        val liftK: G ~> OptionT[G, *] = OptionT.liftK
+        def liftScopeApply[A](scope: G ~> G)(value: OptionT[G, A]): OptionT[G, A] =
+          value.mapK(scope)
+      }
     }
 
-  implicit def eitherT[F[_]: Functor, L]: LiftKind[F, EitherT[F, L, *]] =
-    new LiftKind[F, EitherT[F, L, *]] {
-      def liftF[A](value: F[A]): EitherT[F, L, A] = EitherT.liftF(value)
-      val liftK: F ~> EitherT[F, L, *] = EitherT.liftK
-      def liftScopeApply[A](scope: F ~> F)(value: EitherT[F, L, A]): EitherT[F, L, A] =
-        value.mapK(scope)
+  implicit def eitherT[F[_], G[_]: Functor, L](implicit
+      inner: LiftKind[F, G]
+  ): LiftKind[F, EitherT[G, L, *]] =
+    inner.andThen {
+      new LiftKind[G, EitherT[G, L, *]] {
+        def liftF[A](value: G[A]): EitherT[G, L, A] = EitherT.liftF(value)
+        val liftK: G ~> EitherT[G, L, *] = EitherT.liftK
+        def liftScopeApply[A](scope: G ~> G)(value: EitherT[G, L, A]): EitherT[G, L, A] =
+          value.mapK(scope)
+      }
     }
 
-  implicit def iorT[F[_]: Functor, L]: LiftKind[F, IorT[F, L, *]] =
-    new LiftKind[F, IorT[F, L, *]] {
-      def liftF[A](value: F[A]): IorT[F, L, A] = IorT.right(value)
-      val liftK: F ~> IorT[F, L, *] = IorT.liftK
-      def liftScopeApply[A](scope: F ~> F)(value: IorT[F, L, A]): IorT[F, L, A] =
-        value.mapK(scope)
+  implicit def iorT[F[_], G[_]: Functor, L](implicit
+      inner: LiftKind[F, G]
+  ): LiftKind[F, IorT[G, L, *]] =
+    inner.andThen {
+      new LiftKind[G, IorT[G, L, *]] {
+        def liftF[A](value: G[A]): IorT[G, L, A] = IorT.right(value)
+        val liftK: G ~> IorT[G, L, *] = IorT.liftK
+        def liftScopeApply[A](scope: G ~> G)(value: IorT[G, L, A]): IorT[G, L, A] =
+          value.mapK(scope)
+      }
     }
 
-  implicit def kleisli[F[_], A]: LiftKind[F, Kleisli[F, A, *]] =
-    new LiftKind[F, Kleisli[F, A, *]] {
-      def liftF[B](value: F[B]): Kleisli[F, A, B] = Kleisli.liftF(value)
-      val liftK: F ~> Kleisli[F, A, *] = Kleisli.liftK
-      def liftScopeApply[B](scope: F ~> F)(value: Kleisli[F, A, B]): Kleisli[F, A, B] =
-        value.mapK(scope)
+  implicit def kleisli[F[_], G[_], A](implicit
+      inner: LiftKind[F, G]
+  ): LiftKind[F, Kleisli[G, A, *]] =
+    inner.andThen {
+      new LiftKind[G, Kleisli[G, A, *]] {
+        def liftF[B](value: G[B]): Kleisli[G, A, B] = Kleisli.liftF(value)
+        val liftK: G ~> Kleisli[G, A, *] = Kleisli.liftK
+        def liftScopeApply[B](scope: G ~> G)(value: Kleisli[G, A, B]): Kleisli[G, A, B] =
+          value.mapK(scope)
+      }
     }
 
   // TODO: move to an inner object
-  implicit def stateT[F[_]: Applicative, S]: LiftKind[F, StateT[F, S, *]] =
-    new LiftKind[F, StateT[F, S, *]] {
-      def liftF[A](value: F[A]): StateT[F, S, A] = StateT.liftF(value)
-      val liftK: F ~> StateT[F, S, *] = StateT.liftK
-      def liftScopeApply[A](scope: F ~> F)(value: StateT[F, S, A]): StateT[F, S, A] =
-        value.mapK(scope)
+  implicit def stateT[F[_], G[_]: Applicative, S](implicit
+      inner: LiftKind[F, G]
+  ): LiftKind[F, StateT[G, S, *]] =
+    inner.andThen {
+      new LiftKind[G, StateT[G, S, *]] {
+        def liftF[A](value: G[A]): StateT[G, S, A] = StateT.liftF(value)
+        val liftK: G ~> StateT[G, S, *] = StateT.liftK
+        def liftScopeApply[A](scope: G ~> G)(value: StateT[G, S, A]): StateT[G, S, A] =
+          value.mapK(scope)
+      }
     }
 
-  implicit def writerT[F[_]: Applicative, L: Monoid]: LiftKind[F, WriterT[F, L, *]] =
-    new LiftKind[F, WriterT[F, L, *]] {
-      def liftF[A](value: F[A]): WriterT[F, L, A] = WriterT.liftF(value)
-      val liftK: F ~> WriterT[F, L, *] = WriterT.liftK
-      def liftScopeApply[A](scope: F ~> F)(value: WriterT[F, L, A]): WriterT[F, L, A] =
-        value.mapK(scope)
+  implicit def writerT[F[_], G[_]: Applicative, L: Monoid](implicit
+      inner: LiftKind[F, G]
+  ): LiftKind[F, WriterT[G, L, *]] =
+    inner.andThen {
+      new LiftKind[G, WriterT[G, L, *]] {
+        def liftF[A](value: G[A]): WriterT[G, L, A] = WriterT.liftF(value)
+        val liftK: G ~> WriterT[G, L, *] = WriterT.liftK
+        def liftScopeApply[A](scope: G ~> G)(value: WriterT[G, L, A]): WriterT[G, L, A] =
+          value.mapK(scope)
+      }
     }
 }
