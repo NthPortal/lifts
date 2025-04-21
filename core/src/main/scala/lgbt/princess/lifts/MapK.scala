@@ -20,8 +20,6 @@ trait MapK[F[_], G[_], H[_], I[_]] {
 
 object MapK {
 
-  // is this safe/valid for non-idempotent functions?
-  // does it have the same problem `StateT` does?
   private final class Composed[F[_], G[_], H[_], I[_], J[_], K[_]](
       inner: MapK[F, G, H, I],
       outer: MapK[H, I, J, K],

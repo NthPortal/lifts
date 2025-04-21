@@ -48,7 +48,7 @@ class ResourceLawTests extends CESuite {
   // these have ambiguous implicits for some reason
 //  checkAll(
 //    "LiftValue[IO, Resource[IO, *]]",
-//    LiftValueTests[IO, Resource[IO, *]].liftValue[Int]3
+//    LiftValueTests[IO, Resource[IO, *]].liftValue[Int]
 //  )
 //  checkAll(
 //    "LiftScope[IO, Resource[IO, *]]",

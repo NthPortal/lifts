@@ -6,9 +6,25 @@ import cats.{Applicative, Functor, Monoid, ~>}
 
 trait LiftKind1[F[_], G[_]] extends LiftValue[F, G] with LiftScopeAlt[F, G] {
   final def liftScope(scope: F ~> F): G ~> G = liftFunctionK(scope)
+
+  def andThen[H[_]](that: LiftKind1[G, H]): LiftKind1[F, H] =
+    new LiftKind1.Composed(this, that)
+
+  def compose[E[_]](that: LiftKind1[E, F]): LiftKind1[E, G] =
+    new LiftKind1.Composed(that, this)
 }
 
 object LiftKind1 extends LowPriorityLiftKind1Implicits {
+
+  private final class Composed[F[_], G[_], H[_]](inner: LiftKind1[F, G], outer: LiftKind1[G, H])
+      extends LiftKind1[F, H] {
+    def liftF[A](value: F[A]): H[A] = outer.liftF(inner.liftF(value))
+    val liftK: F ~> H = inner.liftK.andThen(outer.liftK)
+    def mapK[A](value: H[A])(f: F ~> F): H[A] =
+      outer.mapK(value)(inner.liftFunctionK(f))
+    override def liftFunctionK(f: F ~> F): H ~> H =
+      outer.liftFunctionK(inner.liftFunctionK(f))
+  }
 
   def apply[F[_], G[_]](implicit lk1: LiftKind1[F, G]): LiftKind1[F, G] = lk1
 
