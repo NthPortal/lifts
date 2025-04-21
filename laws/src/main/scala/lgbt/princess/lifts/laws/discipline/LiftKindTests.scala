@@ -26,8 +26,8 @@ trait LiftKindTests[F[_], G[_]] extends LiftValueTests[F, G] with LiftScopeTests
       val parents: Seq[RuleSet] = Seq(liftValue[A], liftScope[A])
       def bases: Seq[(String, Laws#RuleSet)] = Seq.empty
       val props: Seq[(String, Prop)] = Seq(
-        "liftF and liftScopeApply are consistent" -> ∀(laws.liftFLiftScopeApplyConsistency[A] _),
-        "liftScopeApply is reversible" -> ∀(laws.liftScopeApplyIsReversible[A] _),
+        "liftF and limitedMapK are consistent" -> ∀(laws.liftFLimitedMapKConsistency[A] _),
+        "limitedMapK is reversible" -> ∀(laws.limitedMapKIsReversible[A] _),
       )
     }
 }

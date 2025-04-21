@@ -19,7 +19,7 @@ trait LiftScope[F[_], G[_]] {
    * @note
    *   This method is usually best implemented by a `mapK` method on `G`.
    */
-  def liftScopeApply[A](scope: F ~> F)(value: G[A]): G[A]
+  def limitedMapK[A](value: G[A])(scope: F ~> F): G[A]
 
   /**
    * Lifts a scope transformation in `F` into a scope operation in `G`.
@@ -30,7 +30,7 @@ trait LiftScope[F[_], G[_]] {
    */
   def liftScope(scope: F ~> F): G ~> G =
     new (G ~> G) {
-      def apply[A](fa: G[A]): G[A] = liftScopeApply(scope)(fa)
+      def apply[A](fa: G[A]): G[A] = limitedMapK(fa)(scope)
     }
 
   def andThen[H[_]](that: LiftScope[G, H]): LiftScope[F, H] =
@@ -46,8 +46,8 @@ object LiftScope {
       inner: LiftScope[F, G],
       outer: LiftScope[G, H]
   ) extends LiftScope[F, H] {
-    def liftScopeApply[A](scope: F ~> F)(value: H[A]): H[A] =
-      outer.liftScopeApply(inner.liftScope(scope))(value)
+    def limitedMapK[A](value: H[A])(scope: F ~> F): H[A] =
+      outer.limitedMapK(value)(inner.liftScope(scope))
     override def liftScope(scope: F ~> F): H ~> H =
       outer.liftScope(inner.liftScope(scope))
   }
@@ -63,14 +63,14 @@ object LiftScope {
 
   implicit def id[F[_]]: LiftScope[F, F] =
     new LiftScope[F, F] with Identity {
-      def liftScopeApply[A](scope: F ~> F)(value: F[A]): F[A] = scope(value)
+      def limitedMapK[A](value: F[A])(scope: F ~> F): F[A] = scope(value)
       override def liftScope(scope: F ~> F): F ~> F = scope
     }
 
   implicit def optionT[F[_], G[_]](implicit inner: LiftScope[F, G]): LiftScope[F, OptionT[G, *]] =
     inner.andThen {
       new LiftScope[G, OptionT[G, *]] {
-        def liftScopeApply[A](scope: G ~> G)(value: OptionT[G, A]): OptionT[G, A] =
+        def limitedMapK[A](value: OptionT[G, A])(scope: G ~> G): OptionT[G, A] =
           value.mapK(scope)
       }
     }
@@ -80,7 +80,7 @@ object LiftScope {
   ): LiftScope[F, EitherT[G, L, *]] =
     inner.andThen {
       new LiftScope[G, EitherT[G, L, *]] {
-        def liftScopeApply[A](scope: G ~> G)(value: EitherT[G, L, A]): EitherT[G, L, A] =
+        def limitedMapK[A](value: EitherT[G, L, A])(scope: G ~> G): EitherT[G, L, A] =
           value.mapK(scope)
       }
     }
@@ -88,7 +88,7 @@ object LiftScope {
   implicit def iorT[F[_], G[_], L](implicit inner: LiftScope[F, G]): LiftScope[F, IorT[G, L, *]] =
     inner.andThen {
       new LiftScope[G, IorT[G, L, *]] {
-        def liftScopeApply[A](scope: G ~> G)(value: IorT[G, L, A]): IorT[G, L, A] =
+        def limitedMapK[A](value: IorT[G, L, A])(scope: G ~> G): IorT[G, L, A] =
           value.mapK(scope)
       }
     }
@@ -98,7 +98,7 @@ object LiftScope {
   ): LiftScope[F, Kleisli[G, A, *]] =
     inner.andThen {
       new LiftScope[G, Kleisli[G, A, *]] {
-        def liftScopeApply[B](scope: G ~> G)(value: Kleisli[G, A, B]): Kleisli[G, A, B] =
+        def limitedMapK[B](value: Kleisli[G, A, B])(scope: G ~> G): Kleisli[G, A, B] =
           value.mapK(scope)
       }
     }
@@ -109,7 +109,7 @@ object LiftScope {
   ): LiftScope[F, StateT[G, S, *]] =
     inner.andThen {
       new LiftScope[G, StateT[G, S, *]] {
-        def liftScopeApply[A](scope: G ~> G)(value: StateT[G, S, A]): StateT[G, S, A] =
+        def limitedMapK[A](value: StateT[G, S, A])(scope: G ~> G): StateT[G, S, A] =
           value.mapK(scope)
       }
     }
@@ -119,7 +119,7 @@ object LiftScope {
   ): LiftScope[F, WriterT[G, L, *]] =
     inner.andThen {
       new LiftScope[G, WriterT[G, L, *]] {
-        def liftScopeApply[A](scope: G ~> G)(value: WriterT[G, L, A]): WriterT[G, L, A] =
+        def limitedMapK[A](value: WriterT[G, L, A])(scope: G ~> G): WriterT[G, L, A] =
           value.mapK(scope)
       }
     }

@@ -24,7 +24,7 @@ trait ResourceInstances extends LowPriorityResourceInstances {
       new LiftKind[G, Resource[G, *]] {
         def liftF[A](value: G[A]): Resource[G, A] = Resource.eval(value)
         val liftK: G ~> Resource[G, *] = Resource.liftK
-        def liftScopeApply[A](scope: G ~> G)(value: Resource[G, A]): Resource[G, A] =
+        def limitedMapK[A](value: Resource[G, A])(scope: G ~> G): Resource[G, A] =
           value.mapK(scope)
       }
     }

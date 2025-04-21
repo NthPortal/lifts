@@ -9,12 +9,12 @@ trait LiftKindLaws[F[_], G[_]] extends LiftValueLaws[F, G] with LiftScopeLaws[F,
   implicit def liftInstance: LiftKind[F, G]
 
   // internal laws:
-  def liftFLiftScopeApplyConsistency[A](scope: F ~> F, fa: F[A]): IsEq[G[A]] =
+  def liftFLimitedMapKConsistency[A](scope: F ~> F, fa: F[A]): IsEq[G[A]] =
     liftInstance.liftF(scope(fa)) <->
-      liftInstance.liftScopeApply(scope)(liftInstance.liftF(fa))
+      liftInstance.limitedMapK(liftInstance.liftF(fa))(scope)
 
-  def liftScopeApplyIsReversible[A](scope: F ~> F, fa: F[A]): IsEq[Unlift.Result[F, A]] =
-    unliftInstance.unlift(liftInstance.liftScopeApply(scope)(liftInstance.liftF(fa))) <->
+  def limitedMapKIsReversible[A](scope: F ~> F, fa: F[A]): IsEq[Unlift.Result[F, A]] =
+    unliftInstance.unlift(liftInstance.limitedMapK(liftInstance.liftF(fa))(scope)) <->
       Unlift.success(scope(fa))
 }
 

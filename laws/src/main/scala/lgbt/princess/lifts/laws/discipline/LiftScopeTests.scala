@@ -20,9 +20,8 @@ trait LiftScopeTests[F[_], G[_]] extends Laws {
   ): RuleSet =
     new SimpleRuleSet(
       name = "liftScope",
-      "liftScopeApply with identity is pure" -> ∀(laws.liftScopeApplyIdentityIsPure[A] _),
-      "liftScopeApply and liftScope are consistent" ->
-        ∀(laws.liftScopeApplyLiftScopeConsistency[A] _),
+      "limitedMapK with identity is pure" -> ∀(laws.limitedMapKIdentityIsPure[A] _),
+      "limitedMapK and liftScope are consistent" -> ∀(laws.limitedMapKLiftScopeConsistency[A] _),
     )
 }
 

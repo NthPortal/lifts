@@ -10,12 +10,12 @@ trait LiftScopeLaws[F[_], G[_]] {
   implicit def liftInstance: LiftScope[F, G]
 
   // external law:
-  def liftScopeApplyIdentityIsPure[A](ga: G[A]): IsEq[G[A]] =
-    liftInstance.liftScopeApply(FunctionK.id)(ga) <-> ga
+  def limitedMapKIdentityIsPure[A](ga: G[A]): IsEq[G[A]] =
+    liftInstance.limitedMapK(ga)(FunctionK.id) <-> ga
 
   // internal law:
-  def liftScopeApplyLiftScopeConsistency[A](scope: F ~> F, ga: G[A]): IsEq[G[A]] =
-    liftInstance.liftScopeApply(scope)(ga) <-> liftInstance.liftScope(scope)(ga)
+  def limitedMapKLiftScopeConsistency[A](scope: F ~> F, ga: G[A]): IsEq[G[A]] =
+    liftInstance.limitedMapK(ga)(scope) <-> liftInstance.liftScope(scope)(ga)
 }
 
 object LiftScopeLaws {
