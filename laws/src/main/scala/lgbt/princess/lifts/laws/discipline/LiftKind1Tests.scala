@@ -42,8 +42,8 @@ object LiftKind1Tests {
     new LiftKind1Tests[F, G] {
       implicit val liftInstance: LiftKind1[F, G] = lift
       implicit val unliftInstance: Unlift[G, F] = unlift
-      implicit def unliftHFInstance: Unlift[G, F] = unliftInstance
-      implicit def unliftIGInstance: Unlift[G, F] = unliftInstance
+      implicit def unlift1Instance: Unlift[G, F] = unliftInstance
+      implicit def unlift2Instance: Unlift[G, F] = unliftInstance
     }
 
   implicit def arbitraryFunctionKListList: Arbitrary[List ~> List] =
