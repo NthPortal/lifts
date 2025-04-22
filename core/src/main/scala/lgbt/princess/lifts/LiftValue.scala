@@ -1,7 +1,7 @@
 package lgbt.princess.lifts
 
 import cats.arrow.FunctionK
-import cats.data.{EitherT, IorT, Kleisli, OptionT, StateT, WriterT}
+import cats.data.{EitherT, IorT, Kleisli, OptionT, RWST, StateT, WriterT}
 import cats.{Applicative, Functor, Monoid, ~>}
 
 import scala.annotation.implicitNotFound
@@ -145,6 +145,16 @@ object LiftValue extends LowPriorityLiftValueImplicits0 {
       new LiftValue[G, WriterT[G, L, *]] {
         def liftF[A](value: G[A]): WriterT[G, L, A] = WriterT.liftF(value)
         val liftK: G ~> WriterT[G, L, *] = WriterT.liftK
+      }
+    }
+
+  implicit def rwst[F[_], G[_]: Applicative, E, L: Monoid, S](implicit
+      inner: LiftValue[F, G]
+  ): LiftValue[F, RWST[G, E, L, S, *]] =
+    inner.andThen {
+      new LiftValue[G, RWST[G, E, L, S, *]] {
+        def liftF[A](value: G[A]): RWST[G, E, L, S, A] = RWST.liftF(value)
+        val liftK: G ~> RWST[G, E, L, S, *] = RWST.liftK
       }
     }
 }

@@ -30,6 +30,10 @@ class LiftValueLawTests extends BaseSuite {
     LiftValueTests[List, WriterT[List, Int, *]].liftValue[String]
   )
   checkAll(
+    "LiftValue[List, RWST[List, Int, Int, Int, *]]",
+    LiftValueTests[List, RWST[List, Int, Int, Int, *]].liftValue[String]
+  )
+  checkAll(
     "LiftValue[List, OptionT[IorT[List, Int, *], *]]",
     LiftValueTests[List, OptionT[IorT[List, Int, *], *]].liftValue[String]
   )

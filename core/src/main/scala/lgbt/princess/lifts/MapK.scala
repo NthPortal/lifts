@@ -1,6 +1,6 @@
 package lgbt.princess.lifts
 
-import cats.data.{EitherT, IorT, Kleisli, OptionT, StateT, WriterT}
+import cats.data.{EitherT, IorT, Kleisli, OptionT, RWST, StateT, WriterT}
 import cats.{Functor, ~>}
 
 trait MapK[F[_], G[_], H[_], I[_]] {
@@ -106,6 +106,16 @@ object MapK {
     inner.andThen {
       new MapK[H, I, WriterT[H, L, *], WriterT[I, L, *]] {
         def mapK[A](value: WriterT[H, L, A])(f: H ~> I): WriterT[I, L, A] =
+          value.mapK(f)
+      }
+    }
+
+  implicit def rwst[F[_], G[_], H[_]: Functor, I[_], E, L, S](implicit
+      inner: MapK[F, G, H, I]
+  ): MapK[F, G, RWST[H, E, L, S, *], RWST[I, E, L, S, *]] =
+    inner.andThen {
+      new MapK[H, I, RWST[H, E, L, S, *], RWST[I, E, L, S, *]] {
+        def mapK[A](value: RWST[H, E, L, S, A])(f: H ~> I): RWST[I, E, L, S, A] =
           value.mapK(f)
       }
     }

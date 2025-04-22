@@ -48,6 +48,7 @@ class LiftKindLawTests extends BaseSuite {
               fa.map {
                 case n: Int => (n + 1).asInstanceOf[A]
                 case (s, n: Int) => (s, n + 1).asInstanceOf[A]
+                case (e, s, n: Int) => (e, s, n + 1).asInstanceOf[A]
                 case other => other
               }
           }
@@ -57,6 +58,10 @@ class LiftKindLawTests extends BaseSuite {
     checkAll(
       "LiftKind[List, StateT[List, String, *]]",
       LiftKindTests[List, StateT[List, String, *]].liftKind[Int]
+    )
+    checkAll(
+      "LiftKind[List, RWST[List, String, String, String, *]]",
+      LiftKindTests[List, RWST[List, String, String, String, *]].liftKind[Int]
     )
   }
 }

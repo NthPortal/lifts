@@ -1,7 +1,7 @@
 package lgbt.princess.lifts
 
 import cats.arrow.FunctionK
-import cats.data.{EitherT, IorT, Kleisli, OptionT, StateT, WriterT}
+import cats.data.{EitherT, IorT, Kleisli, OptionT, RWST, StateT, WriterT}
 import cats.{Applicative, Functor, Monoid, ~>}
 
 trait LiftKind1[F[_], G[_]] extends LiftValue[F, G] with LiftScopeAlt[F, G] {
@@ -115,6 +115,18 @@ object LiftKind1 extends LowPriorityLiftKind1Implicits {
         val liftK: G ~> WriterT[G, L, *] = WriterT.liftK
         def mapK[A](value: WriterT[G, L, A])(scope: G ~> G): WriterT[G, L, A] =
           value.mapK(scope)
+      }
+    }
+
+  implicit def rwst[F[_], G[_]: Applicative, E, L: Monoid, S](implicit
+      inner: LiftKind1[F, G]
+  ): LiftKind1[F, RWST[G, E, L, S, *]] =
+    inner.andThen {
+      new LiftKind1[G, RWST[G, E, L, S, *]] {
+        def liftF[A](value: G[A]): RWST[G, E, L, S, A] = RWST.liftF(value)
+        val liftK: G ~> RWST[G, E, L, S, *] = RWST.liftK
+        def mapK[A](value: RWST[G, E, L, S, A])(f: G ~> G): RWST[G, E, L, S, A] =
+          value.mapK(f)
       }
     }
 }

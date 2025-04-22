@@ -1,7 +1,7 @@
 package lgbt.princess.lifts
 
 import cats.arrow.FunctionK
-import cats.data.{EitherT, IorT, Kleisli, OptionT, StateT, WriterT}
+import cats.data.{EitherT, IorT, Kleisli, OptionT, RWST, StateT, WriterT}
 import cats.{Applicative, Functor, Monoid, ~>}
 
 import scala.annotation.implicitNotFound
@@ -121,6 +121,18 @@ object LiftKind {
         def liftF[A](value: G[A]): WriterT[G, L, A] = WriterT.liftF(value)
         val liftK: G ~> WriterT[G, L, *] = WriterT.liftK
         def limitedMapK[A](value: WriterT[G, L, A])(scope: G ~> G): WriterT[G, L, A] =
+          value.mapK(scope)
+      }
+    }
+
+  implicit def rwst[F[_], G[_]: Applicative, E, L: Monoid, S](implicit
+      inner: LiftKind[F, G]
+  ): LiftKind[F, RWST[G, E, L, S, *]] =
+    inner.andThen {
+      new LiftKind[G, RWST[G, E, L, S, *]] {
+        def liftF[A](value: G[A]): RWST[G, E, L, S, A] = RWST.liftF(value)
+        val liftK: G ~> RWST[G, E, L, S, *] = RWST.liftK
+        def limitedMapK[A](value: RWST[G, E, L, S, A])(scope: G ~> G): RWST[G, E, L, S, A] =
           value.mapK(scope)
       }
     }

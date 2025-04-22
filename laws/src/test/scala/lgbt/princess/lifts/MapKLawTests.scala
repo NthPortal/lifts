@@ -41,7 +41,7 @@ class MapKLawTests extends BaseSuite {
   locally {
     // `StateT` breaks up `List`s into `List`s of individual elements,
     // so `List ~> Vector` instances that change the collection's size don't work
-    implicit val awfulBespokeArbListSet: Arbitrary[List ~> Vector] =
+    implicit val awfulBespokeArbListVector: Arbitrary[List ~> Vector] =
       Arbitrary {
         Gen.const {
           new (List ~> Vector) {
@@ -49,6 +49,7 @@ class MapKLawTests extends BaseSuite {
               fa.map {
                 case n: Int => (n + 1).asInstanceOf[A]
                 case (s, n: Int) => (s, n + 1).asInstanceOf[A]
+                case (e, s, n: Int) => (e, s, n + 1).asInstanceOf[A]
                 case other => other
               }.toVector
           }
@@ -58,6 +59,15 @@ class MapKLawTests extends BaseSuite {
     checkAll(
       "MapK[List, Vector, StateT[List, String, *], StateT[Vector, String, *]]",
       MapKTests[List, Vector, StateT[List, String, *], StateT[Vector, String, *]].mapK[Int]
+    )
+    checkAll(
+      "MapK[List, Vector, RWST[List, String, String, String, *], RWST[Vector, String, String, String, *]]",
+      MapKTests[
+        List,
+        Vector,
+        RWST[List, String, String, String, *],
+        RWST[Vector, String, String, String, *]
+      ].mapK[Int]
     )
   }
 }

@@ -1,6 +1,6 @@
 package lgbt.princess.lifts
 
-import cats.data.{EitherT, IorT, Kleisli, OptionT, StateT, WriterT}
+import cats.data.{EitherT, IorT, Kleisli, OptionT, RWST, StateT, WriterT}
 import cats.{Functor, ~>}
 
 import scala.annotation.implicitNotFound
@@ -120,6 +120,16 @@ object LiftScope {
     inner.andThen {
       new LiftScope[G, WriterT[G, L, *]] {
         def limitedMapK[A](value: WriterT[G, L, A])(scope: G ~> G): WriterT[G, L, A] =
+          value.mapK(scope)
+      }
+    }
+
+  implicit def rwst[F[_], G[_]: Functor, E, L, S](implicit
+      inner: LiftScope[F, G]
+  ): LiftScope[F, RWST[G, E, L, S, *]] =
+    inner.andThen {
+      new LiftScope[G, RWST[G, E, L, S, *]] {
+        def limitedMapK[A](value: RWST[G, E, L, S, A])(scope: G ~> G): RWST[G, E, L, S, A] =
           value.mapK(scope)
       }
     }

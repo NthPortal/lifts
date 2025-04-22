@@ -1,7 +1,7 @@
 package lgbt.princess.lifts.laws
 
 import cats.{Eq, Functor, Monad, Monoid, Show}
-import cats.data.{EitherT, IorT, Kleisli, OptionT, StateT, WriterT}
+import cats.data.{EitherT, IorT, Kleisli, OptionT, RWST, StateT, WriterT}
 import cats.syntax.functor._
 import cats.syntax.show._
 import lgbt.princess.lifts.Identity
@@ -139,6 +139,18 @@ object Unlift {
         val functor: Functor[G] = G
         def unlift[A](value: WriterT[G, L, A]): Result[G, A] =
           success(value.value)
+      }
+    }
+
+  implicit def rwst[G[_], F[_], E: Monoid, L, S: Monoid](implicit
+      G: Monad[G],
+      outer: Unlift[G, F]
+  ): Unlift[RWST[G, E, L, S, *], F] =
+    outer.compose {
+      new Unlift[RWST[G, E, L, S, *], G] {
+        val functor: Functor[G] = G
+        def unlift[A](value: RWST[G, E, L, S, A]): Result[G, A] =
+          success(value.run(Monoid[E].empty, Monoid[S].empty).map(_._3))
       }
     }
 }
