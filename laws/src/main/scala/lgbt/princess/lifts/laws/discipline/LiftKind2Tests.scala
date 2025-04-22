@@ -11,8 +11,6 @@ import org.typelevel.discipline.Laws
 trait LiftKind2Tests[F[_], G[_], H[_], I[_]] extends MapKTests[F, G, H, I] {
   implicit val liftInstance: LiftKind2[F, G, H, I]
   implicit final def mapKInstance: MapK[F, G, H, I] = liftInstance
-  implicit val unlift1Instance: Unlift[H, F]
-  implicit val unlift2Instance: Unlift[I, G]
 
   override def laws: LiftKind2Laws[F, G, H, I] = LiftKind2Laws[F, G, H, I]
 
@@ -46,13 +44,13 @@ trait LiftKind2Tests[F[_], G[_], H[_], I[_]] extends MapKTests[F, G, H, I] {
 object LiftKind2Tests {
   def apply[F[_], G[_], H[_], I[_]](implicit
       lift: LiftKind2[F, G, H, I],
-      unlift1: Unlift[H, F],
-      unlift2: Unlift[I, G],
+      unliftHF: Unlift[H, F],
+      unliftIG: Unlift[I, G],
   ): LiftKind2Tests[F, G, H, I] = {
     new LiftKind2Tests[F, G, H, I] {
       implicit val liftInstance: LiftKind2[F, G, H, I] = lift
-      implicit val unlift1Instance: Unlift[H, F] = unlift1
-      implicit val unlift2Instance: Unlift[I, G] = unlift2
+      implicit val unliftHFInstance: Unlift[H, F] = unliftHF
+      implicit val unliftIGInstance: Unlift[I, G] = unliftIG
     }
   }
 

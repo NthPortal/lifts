@@ -50,6 +50,7 @@ class MapKLawTests extends BaseSuite {
                 case n: Int => (n + 1).asInstanceOf[A]
                 case (s, n: Int) => (s, n + 1).asInstanceOf[A]
                 case (e, s, n: Int) => (e, s, n + 1).asInstanceOf[A]
+                case Right(n: Int) => Right(n + 1).asInstanceOf[A]
                 case other => other
               }.toVector
           }

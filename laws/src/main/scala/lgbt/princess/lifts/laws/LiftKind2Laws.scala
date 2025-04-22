@@ -35,6 +35,8 @@ object LiftKind2Laws {
       implicit val liftInstance: LiftKind2[F, G, H, I] = lift
       val liftValue1Laws: LiftValueLaws[F, H] = lv1Laws
       val liftValue2Laws: LiftValueLaws[G, I] = lv2Laws
+      implicit def unliftHFInstance: Unlift[H, F] = liftValue1Laws.unliftInstance
+      implicit def unliftIGInstance: Unlift[I, G] = liftValue2Laws.unliftInstance
     }
   }
 }
