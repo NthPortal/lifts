@@ -8,7 +8,7 @@ import cats.laws.IsEqArrow
 trait LiftValueLaws[F[_], G[_]] {
   implicit def liftInstance: LiftValue[F, G]
   implicit def unliftInstance: Unlift[G, F]
-  implicit def functor: Functor[F] = unliftInstance.functor
+  implicit final def functor: Functor[F] = unliftInstance.functor
 
   // internal laws:
   def liftFLiftKConsistency[A](fa: F[A]): IsEq[G[A]] =

@@ -14,7 +14,7 @@ trait LiftScopeLaws[F[_], G[_]] {
     liftInstance.limitedMapK(ga)(FunctionK.id) <-> ga
 
   // internal law:
-  def limitedMapKLiftScopeConsistency[A](scope: F ~> F, ga: G[A]): IsEq[G[A]] =
+  def limitedMapKLiftScopeConsistency[A](ga: G[A], scope: F ~> F): IsEq[G[A]] =
     liftInstance.limitedMapK(ga)(scope) <-> liftInstance.liftScope(scope)(ga)
 }
 

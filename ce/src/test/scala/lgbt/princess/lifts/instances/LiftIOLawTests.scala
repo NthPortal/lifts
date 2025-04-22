@@ -19,6 +19,6 @@ class LiftIOLawTests extends CESuite {
   test[IO]("IO")
   test[OptionT[IO, *]]("OptionT[IO, *]")
   test[Resource[IO, *]]("Resource[IO, *]")
-  test[OptionT[Resource[IO, *], *]]("Resource[OptionT[IO, *], *]")
+  test[OptionT[Resource[IO, *], *]]("OptionT[Resource[IO, *], *]")
   test[Resource[OptionT[IO, *], *]]("Resource[OptionT[IO, *], *]")
 }
