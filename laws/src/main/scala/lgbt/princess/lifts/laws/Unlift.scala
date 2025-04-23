@@ -48,10 +48,17 @@ object Unlift {
   }
 
   /** A description of why a value could not be un-lifted. */
-  final case class Failure(description: String)
+  final class Failure private (description: String) {
+    override def toString: String = s"Failure($description)"
+  }
 
   object Failure {
-    implicit val eqInstance: Eq[Failure] = Eq.by(_.description)
+    // distinct references are never equal, so that laws where both sides are
+    // un-lifted can't (theoretically) fail to un-lift and still be equal
+    implicit val eqInstance: Eq[Failure] = Eq.fromUniversalEquals
+
+    /** @return a `Failure` with the given description */
+    def apply(description: String): Failure = new Failure(description)
   }
 
   /**

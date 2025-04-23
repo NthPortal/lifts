@@ -4,14 +4,11 @@ import sbt._
 object Dependencies {
   private object V {
     val cats = "2.13.0"
-    val catsEffect = "3.6.0"
     val catsMtl = "1.5.0"
   }
 
   val catsCore = Def.setting("org.typelevel" %%% "cats-core" % V.cats)
-  val catsEffect = Def.setting("org.typelevel" %%% "cats-effect" % V.catsEffect)
-  val catsEffectTestkit =
-    Def.setting("org.typelevel" %%% "cats-effect-kernel-testkit" % V.catsEffect % Test)
+  val catsEffect = Def.setting("org.typelevel" %%% "cats-effect" % "3.6.0")
   val catsLaws = Def.setting("org.typelevel" %%% "cats-laws" % V.cats)
   val catsMtl = Def.setting("org.typelevel" %%% "cats-mtl" % V.catsMtl)
   val catsMtlLaws = Def.setting("org.typelevel" %%% "cats-mtl-laws" % V.catsMtl)
