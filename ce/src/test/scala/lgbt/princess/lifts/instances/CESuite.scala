@@ -2,17 +2,13 @@ package lgbt.princess.lifts
 package instances
 
 import cats.data.EitherT
+import cats.effect.{MonadCancelThrow, Resource}
 import cats.{Eq, Functor}
-import cats.effect.IO
-import cats.effect.kernel.{MonadCancelThrow, Resource}
 import lgbt.princess.lifts.laws.Unlift
 import lgbt.princess.lifts.laws.Unlift.Result
-import munit.{CatsEffectSuite, DisciplineSuite}
+import munit.DisciplineSuite
 
-abstract class CESuite extends CatsEffectSuite with DisciplineSuite {
-  implicit def eqIO[A: Eq]: Eq[IO[A]] =
-    Eq.by(_.unsafeRunSync())
-
+trait CESuite extends DisciplineSuite {
   implicit def eqResource[F[_], A](implicit
       F: MonadCancelThrow[F],
       eqFA: Eq[F[A]]

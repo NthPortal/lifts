@@ -1,14 +1,12 @@
 package lgbt.princess.lifts
 
-import cats.data.{EitherT, IorT, Kleisli, OptionT, RWST, StateT, WriterT}
-import cats.{Functor, ~>}
+import cats.data.{EitherT, IorT, Kleisli, OptionT, WriterT}
+import cats.~>
 
 import scala.annotation.implicitNotFound
 
 /**
  * Lifts scope transformations from the higher-kinded type `F` to the higher-kinded type `G`.
- *
- * TODO: document issue with `StateT` implicit
  */
 @implicitNotFound("no way defined to lift scopes from ${F} to ${G}")
 trait LiftScope[F[_], G[_]] {
@@ -103,33 +101,12 @@ object LiftScope {
       }
     }
 
-  // TODO: move to an inner object
-  implicit def stateT[F[_], G[_]: Functor, S](implicit
-      inner: LiftScope[F, G]
-  ): LiftScope[F, StateT[G, S, *]] =
-    inner.andThen {
-      new LiftScope[G, StateT[G, S, *]] {
-        def limitedMapK[A](value: StateT[G, S, A])(scope: G ~> G): StateT[G, S, A] =
-          value.mapK(scope)
-      }
-    }
-
   implicit def writerT[F[_], G[_], L](implicit
       inner: LiftScope[F, G]
   ): LiftScope[F, WriterT[G, L, *]] =
     inner.andThen {
       new LiftScope[G, WriterT[G, L, *]] {
         def limitedMapK[A](value: WriterT[G, L, A])(scope: G ~> G): WriterT[G, L, A] =
-          value.mapK(scope)
-      }
-    }
-
-  implicit def rwst[F[_], G[_]: Functor, E, L, S](implicit
-      inner: LiftScope[F, G]
-  ): LiftScope[F, RWST[G, E, L, S, *]] =
-    inner.andThen {
-      new LiftScope[G, RWST[G, E, L, S, *]] {
-        def limitedMapK[A](value: RWST[G, E, L, S, A])(scope: G ~> G): RWST[G, E, L, S, A] =
           value.mapK(scope)
       }
     }

@@ -14,6 +14,7 @@ object ImplicitSummoningTests {
     LiftValue[Option, Kleisli[Option, Int, *]]
     LiftValue[Option, StateT[Option, Int, *]]
     LiftValue[Option, WriterT[Option, Int, *]]
+    LiftValue[Option, RWST[Option, Int, Int, Int, *]]
 
     // LiftScope
     LiftScope[Option, Option]
@@ -21,7 +22,6 @@ object ImplicitSummoningTests {
     LiftScope[Option, EitherT[Option, Int, *]]
     LiftScope[Option, IorT[Option, Int, *]]
     LiftScope[Option, Kleisli[Option, Int, *]]
-    LiftScope[Option, StateT[Option, Int, *]] // TODO: fix
     LiftScope[Option, WriterT[Option, Int, *]]
 
     // LiftKind
@@ -30,7 +30,6 @@ object ImplicitSummoningTests {
     LiftKind[Option, EitherT[Option, Int, *]]
     LiftKind[Option, IorT[Option, Int, *]]
     LiftKind[Option, Kleisli[Option, Int, *]]
-    LiftKind[Option, StateT[Option, Int, *]]
     LiftKind[Option, WriterT[Option, Int, *]]
 
     // MapK
@@ -39,7 +38,6 @@ object ImplicitSummoningTests {
     MapK[Option, List, EitherT[Option, Int, *], EitherT[List, Int, *]]
     MapK[Option, List, IorT[Option, Int, *], IorT[List, Int, *]]
     MapK[Option, List, Kleisli[Option, Int, *], Kleisli[List, Int, *]]
-    MapK[Option, List, StateT[Option, Int, *], StateT[List, Int, *]]
     MapK[Option, List, WriterT[Option, Int, *], WriterT[List, Int, *]]
 
     // LiftScopeAlt
@@ -48,7 +46,6 @@ object ImplicitSummoningTests {
     LiftScopeAlt[Option, EitherT[Option, Int, *]]
     LiftScopeAlt[Option, IorT[Option, Int, *]]
     LiftScopeAlt[Option, Kleisli[Option, Int, *]]
-    LiftScopeAlt[Option, StateT[Option, Int, *]]
     LiftScopeAlt[Option, WriterT[Option, Int, *]]
 
     // LiftKind1
@@ -57,7 +54,6 @@ object ImplicitSummoningTests {
     LiftKind1[Option, EitherT[Option, Int, *]]
     LiftKind1[Option, IorT[Option, Int, *]]
     LiftKind1[Option, Kleisli[Option, Int, *]]
-    LiftKind1[Option, StateT[Option, Int, *]]
     LiftKind1[Option, WriterT[Option, Int, *]]
 
     // LiftKind2
@@ -66,7 +62,6 @@ object ImplicitSummoningTests {
     LiftKind2[Option, List, EitherT[Option, Int, *], EitherT[List, Int, *]]
     LiftKind2[Option, List, IorT[Option, Int, *], IorT[List, Int, *]]
     LiftKind2[Option, List, Kleisli[Option, Int, *], Kleisli[List, Int, *]]
-    LiftKind2[Option, List, StateT[Option, Int, *], StateT[List, Int, *]]
     LiftKind2[Option, List, WriterT[Option, Int, *], WriterT[List, Int, *]]
   }
 
@@ -79,6 +74,7 @@ object ImplicitSummoningTests {
     LiftValue[F, Kleisli[F, Int, *]]
     LiftValue[F, StateT[F, Int, *]]
     LiftValue[F, WriterT[F, Int, *]]
+    LiftValue[F, RWST[F, Int, Int, Int, *]]
 
     // LiftScope
     LiftScope[F, F]
@@ -86,7 +82,6 @@ object ImplicitSummoningTests {
     LiftScope[F, EitherT[F, Int, *]]
     LiftScope[F, IorT[F, Int, *]]
     LiftScope[F, Kleisli[F, Int, *]]
-    LiftScope[F, StateT[F, Int, *]] // TODO: fix
     LiftScope[F, WriterT[F, Int, *]]
 
     // LiftKind
@@ -95,7 +90,6 @@ object ImplicitSummoningTests {
     LiftKind[F, EitherT[F, Int, *]]
     LiftKind[F, IorT[F, Int, *]]
     LiftKind[F, Kleisli[F, Int, *]]
-    LiftKind[F, StateT[F, Int, *]]
     LiftKind[F, WriterT[F, Int, *]]
 
     // MapK
@@ -104,7 +98,6 @@ object ImplicitSummoningTests {
     MapK[F, G, EitherT[F, Int, *], EitherT[G, Int, *]]
     MapK[F, G, IorT[F, Int, *], IorT[G, Int, *]]
     MapK[F, G, Kleisli[F, Int, *], Kleisli[G, Int, *]]
-    MapK[F, G, StateT[F, Int, *], StateT[G, Int, *]]
     MapK[F, G, WriterT[F, Int, *], WriterT[G, Int, *]]
 
     // LiftScopeAlt
@@ -113,7 +106,6 @@ object ImplicitSummoningTests {
     LiftScopeAlt[F, EitherT[F, Int, *]]
     LiftScopeAlt[F, IorT[F, Int, *]]
     LiftScopeAlt[F, Kleisli[F, Int, *]]
-    LiftScopeAlt[F, StateT[F, Int, *]]
     LiftScopeAlt[F, WriterT[F, Int, *]]
 
     // LiftKind1
@@ -122,7 +114,6 @@ object ImplicitSummoningTests {
     LiftKind1[F, EitherT[F, Int, *]]
     LiftKind1[F, IorT[F, Int, *]]
     LiftKind1[F, Kleisli[F, Int, *]]
-    LiftKind1[F, StateT[F, Int, *]]
     LiftKind1[F, WriterT[F, Int, *]]
 
     // LiftKind2
@@ -131,7 +122,6 @@ object ImplicitSummoningTests {
     LiftKind2[F, G, EitherT[F, Int, *], EitherT[G, Int, *]]
     LiftKind2[F, G, IorT[F, Int, *], IorT[G, Int, *]]
     LiftKind2[F, G, Kleisli[F, Int, *], Kleisli[G, Int, *]]
-    LiftKind2[F, G, StateT[F, Int, *], StateT[G, Int, *]]
     LiftKind2[F, G, WriterT[F, Int, *], WriterT[G, Int, *]]
   }
 

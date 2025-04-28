@@ -2,53 +2,76 @@ package lgbt.princess.lifts
 package instances
 
 import cats.data.OptionT
-import cats.effect.kernel.Resource
-import cats.effect.{IO, IOLocal, LiftIO}
-import cats.mtl.Local
-import cats.~>
+import cats.effect._
+import cats.effect.kernel.testkit.PureConcGenerators._
+import cats.effect.kernel.testkit.pure._
+import cats.laws.discipline.arbitrary.catsLawsArbitraryForOptionT
+import cats.syntax.flatMap._
+import cats.{Eq, ~>}
 import lgbt.princess.lifts.instances.ResourceInstances._
 import lgbt.princess.lifts.laws.discipline._
 import org.scalacheck.{Arbitrary, Gen}
 
 class ResourceLawTests extends CESuite {
-  implicit val counter: Local[IO, Int] =
-    IOLocal(0).unsafeRunSync().asLocal
+  type PCT[A] = PureConc[Throwable, A]
 
-  implicit def arbitraryIOLiftedInt[F[_]](implicit liftIO: LiftIO[F]): Arbitrary[F[Int]] =
-    Arbitrary(Gen.const(liftIO.liftIO(counter.ask[Int])))
+  val counter: PCT[Ref[PCT, Int]] = Concurrent[PCT].ref(0)
 
-  implicit def arbitraryIOLift[F[_]](implicit liftIO: LiftIO[F]): Arbitrary[IO ~> F] =
+  implicit val eqThrowable: Eq[Throwable] = Eq.fromUniversalEquals
+
+  implicit val arbitraryScope: Arbitrary[PCT ~> PCT] =
     Arbitrary {
       Gen.const {
-        new (IO ~> F) {
-          def apply[A](fa: IO[A]): F[A] =
-            liftIO.liftIO(counter.local(fa)(_ + 1))
+        new (PCT ~> PCT) {
+          def apply[A](fa: PCT[A]): PCT[A] =
+            for {
+              ref <- counter
+              res <- ref.update(_ + 1) >> fa
+            } yield res
         }
       }
     }
 
+  implicit val arbitraryOptionTScope: Arbitrary[PCT ~> OptionT[PCT, *]] =
+    Arbitrary {
+      arbitraryScope.arbitrary.map {
+        _.andThen {
+          new (PCT ~> OptionT[PCT, *]) {
+            def apply[A](fa: PCT[A]): OptionT[PCT, A] = OptionT.liftF(fa)
+          }
+        }
+      }
+    }
+
+  implicit def arbitraryResource[F[_], A](implicit
+      arbFA: Arbitrary[F[A]]
+  ): Arbitrary[Resource[F, A]] =
+    Arbitrary(arbFA.arbitrary.map(Resource.eval))
+
   checkAll(
-    "LiftValue[IO, Resource[IO, *]]",
-    LiftValueTests[IO, Resource[IO, *]].liftValue[Int]
+    "LiftValue[PCT, Resource[PCT, *]]",
+    LiftValueTests[PCT, Resource[PCT, *]].liftValue[Int]
   )
   checkAll(
-    "LiftScope[IO, Resource[IO, *]]",
-    LiftScopeTests[IO, Resource[IO, *]].liftScope[Int]
+    "LiftScope[PCT, Resource[PCT, *]]",
+    LiftScopeTests[PCT, Resource[PCT, *]].liftScope[Int]
   )
   checkAll(
-    "LiftKind[IO, Resource[IO, *]]",
-    LiftKindTests[IO, Resource[IO, *]].liftKind[Int]
+    "LiftKind[PCT, Resource[PCT, *]]",
+    LiftKindTests[PCT, Resource[PCT, *]].liftKind[Int]
   )
   checkAll(
-    "MapK[IO, OptionT[IO, *], Resource[IO, *], Resource[OptionT[IO, *], *]]",
-    MapKTests[IO, OptionT[IO, *], Resource[IO, *], Resource[OptionT[IO, *], *]].mapK[Int]
+    "MapK[PCT, OptionT[PCT, *], Resource[PCT, *], Resource[OptionT[PCT, *], *]]",
+    MapKTests[PCT, OptionT[PCT, *], Resource[PCT, *], Resource[OptionT[PCT, *], *]]
+      .mapK[Int]
   )
   checkAll(
-    "LiftKind1[IO, Resource[IO, *]]",
-    LiftKind1Tests[IO, Resource[IO, *]].liftKind1[Int]
+    "LiftKind1[PCT, Resource[PCT, *]]",
+    LiftKind1Tests[PCT, Resource[PCT, *]].liftKind1[Int]
   )
   checkAll(
-    "LiftKind2[IO, OptionT[IO, *], Resource[IO, *], Resource[OptionT[IO, *], *]]",
-    LiftKind2Tests[IO, OptionT[IO, *], Resource[IO, *], Resource[OptionT[IO, *], *]].liftKind2[Int]
+    "LiftKind2[PCT, OptionT[PCT, *], Resource[PCT, *], Resource[OptionT[PCT, *], *]]",
+    LiftKind2Tests[PCT, OptionT[PCT, *], Resource[PCT, *], Resource[OptionT[PCT, *], *]]
+      .liftKind2[Int]
   )
 }

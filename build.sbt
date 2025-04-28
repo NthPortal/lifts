@@ -138,7 +138,7 @@ lazy val ce =
       libraryDependencies ++= Seq(
         catsEffect.value,
         catsCore.value % Test,
-        //        catsEffectTestkit.value,
+        catsEffectTestkit.value,
         catsMtl.value % Test,
         munitCatsEffect.value,
       )

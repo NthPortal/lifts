@@ -1,7 +1,7 @@
 package lgbt.princess.lifts
 
 import cats.arrow.FunctionK
-import cats.data.{EitherT, IorT, Kleisli, OptionT, RWST, StateT, WriterT}
+import cats.data.{EitherT, IorT, Kleisli, OptionT, WriterT}
 import cats.{Applicative, Functor, Monoid, ~>}
 
 import scala.annotation.implicitNotFound
@@ -9,8 +9,6 @@ import scala.annotation.implicitNotFound
 /**
  * Lifts values and scope transformations from the higher-kinded type `F` to the higher-kinded type
  * `G`.
- *
- * TODO: document issue with `StateT` implicit
  */
 @implicitNotFound("no way defined to lift values and scopes from ${F} to ${G}")
 trait LiftKind[F[_], G[_]] extends LiftValue[F, G] with LiftScope[F, G] {
@@ -100,19 +98,6 @@ object LiftKind {
       }
     }
 
-  // TODO: move to an inner object
-  implicit def stateT[F[_], G[_]: Applicative, S](implicit
-      inner: LiftKind[F, G]
-  ): LiftKind[F, StateT[G, S, *]] =
-    inner.andThen {
-      new LiftKind[G, StateT[G, S, *]] {
-        def liftF[A](value: G[A]): StateT[G, S, A] = StateT.liftF(value)
-        val liftK: G ~> StateT[G, S, *] = StateT.liftK
-        def limitedMapK[A](value: StateT[G, S, A])(scope: G ~> G): StateT[G, S, A] =
-          value.mapK(scope)
-      }
-    }
-
   implicit def writerT[F[_], G[_]: Applicative, L: Monoid](implicit
       inner: LiftKind[F, G]
   ): LiftKind[F, WriterT[G, L, *]] =
@@ -121,18 +106,6 @@ object LiftKind {
         def liftF[A](value: G[A]): WriterT[G, L, A] = WriterT.liftF(value)
         val liftK: G ~> WriterT[G, L, *] = WriterT.liftK
         def limitedMapK[A](value: WriterT[G, L, A])(scope: G ~> G): WriterT[G, L, A] =
-          value.mapK(scope)
-      }
-    }
-
-  implicit def rwst[F[_], G[_]: Applicative, E, L: Monoid, S](implicit
-      inner: LiftKind[F, G]
-  ): LiftKind[F, RWST[G, E, L, S, *]] =
-    inner.andThen {
-      new LiftKind[G, RWST[G, E, L, S, *]] {
-        def liftF[A](value: G[A]): RWST[G, E, L, S, A] = RWST.liftF(value)
-        val liftK: G ~> RWST[G, E, L, S, *] = RWST.liftK
-        def limitedMapK[A](value: RWST[G, E, L, S, A])(scope: G ~> G): RWST[G, E, L, S, A] =
           value.mapK(scope)
       }
     }

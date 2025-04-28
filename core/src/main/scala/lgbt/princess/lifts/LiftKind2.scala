@@ -1,6 +1,6 @@
 package lgbt.princess.lifts
 
-import cats.data.{EitherT, IorT, Kleisli, OptionT, RWST, StateT, WriterT}
+import cats.data.{EitherT, IorT, Kleisli, OptionT, WriterT}
 import cats.kernel.Monoid
 import cats.{Applicative, Functor, ~>}
 
@@ -100,19 +100,6 @@ object LiftKind2 {
       }
     }
 
-  // TODO: move to an inner object
-  implicit def stateT[F[_], G[_], H[_]: Applicative, I[_]: Applicative, S](implicit
-      inner: LiftKind2[F, G, H, I]
-  ): LiftKind2[F, G, StateT[H, S, *], StateT[I, S, *]] =
-    inner.andThen {
-      new LiftKind2[H, I, StateT[H, S, *], StateT[I, S, *]] {
-        val liftValue1: LiftValue[H, StateT[H, S, *]] = LiftValue.stateT
-        val liftValue2: LiftValue[I, StateT[I, S, *]] = LiftValue.stateT
-        def mapK[A](value: StateT[H, S, A])(f: H ~> I): StateT[I, S, A] =
-          value.mapK(f)
-      }
-    }
-
   implicit def writerT[F[_], G[_], H[_]: Applicative, I[_]: Applicative, L: Monoid](implicit
       inner: LiftKind2[F, G, H, I]
   ): LiftKind2[F, G, WriterT[H, L, *], WriterT[I, L, *]] =
@@ -121,18 +108,6 @@ object LiftKind2 {
         val liftValue1: LiftValue[H, WriterT[H, L, *]] = LiftValue.writerT
         val liftValue2: LiftValue[I, WriterT[I, L, *]] = LiftValue.writerT
         def mapK[A](value: WriterT[H, L, A])(f: H ~> I): WriterT[I, L, A] =
-          value.mapK(f)
-      }
-    }
-
-  implicit def rwst[F[_], G[_], H[_]: Applicative, I[_]: Applicative, E, L: Monoid, S](implicit
-      inner: LiftKind2[F, G, H, I]
-  ): LiftKind2[F, G, RWST[H, E, L, S, *], RWST[I, E, L, S, *]] =
-    inner.andThen {
-      new LiftKind2[H, I, RWST[H, E, L, S, *], RWST[I, E, L, S, *]] {
-        val liftValue1: LiftValue[H, RWST[H, E, L, S, *]] = LiftValue.rwst
-        val liftValue2: LiftValue[I, RWST[I, E, L, S, *]] = LiftValue.rwst
-        def mapK[A](value: RWST[H, E, L, S, A])(f: H ~> I): RWST[I, E, L, S, A] =
           value.mapK(f)
       }
     }

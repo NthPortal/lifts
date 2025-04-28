@@ -1,9 +1,25 @@
 package lgbt.princess.lifts
 
+import cats.{Eq, FlatMap, Monad}
 import cats.data._
+import cats.laws.discipline.eq._
 import lgbt.princess.lifts.laws.discipline.LiftValueTests
+import org.scalacheck.Arbitrary
 
 class LiftValueLawTests extends BaseSuite {
+  implicit def stateTEq[F[_]: FlatMap, S, A](implicit
+      arbS: Arbitrary[S],
+      eqFSA: Eq[F[(S, A)]],
+  ): Eq[StateT[F, S, A]] =
+    Eq.by(state => (s: S) => state.run(s))
+
+  implicit def rwstEq[F[_]: Monad, E, L, S, A](implicit
+      arbE: Arbitrary[E],
+      arbS: Arbitrary[S],
+      eqFLSA: Eq[F[(L, S, A)]]
+  ): Eq[RWST[F, E, L, S, A]] =
+    Eq.by(rwst => (e: E) => (s: S) => rwst.run(e, s))
+
   checkAll("LiftValue[List, List]", LiftValueTests[List, List].liftValue[String])
   checkAll(
     "LiftValue[List, OptionT[List, *]]",

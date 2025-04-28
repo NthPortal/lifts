@@ -1,7 +1,7 @@
 package lgbt.princess.lifts
 
 import cats.arrow.FunctionK
-import cats.data.{EitherT, IorT, Kleisli, OptionT, RWST, StateT, WriterT}
+import cats.data.{EitherT, IorT, Kleisli, OptionT, WriterT}
 import cats.{Applicative, Functor, Monoid, ~>}
 
 trait LiftKind1[F[_], G[_]] extends LiftValue[F, G] with LiftScopeAlt[F, G] {
@@ -93,19 +93,6 @@ object LiftKind1 extends LowPriorityLiftKind1Implicits {
       }
     }
 
-  // TODO: move to an inner object
-  implicit def stateT[F[_], G[_]: Applicative, S](implicit
-      inner: LiftKind1[F, G]
-  ): LiftKind1[F, StateT[G, S, *]] =
-    inner.andThen {
-      new LiftKind1[G, StateT[G, S, *]] {
-        def liftF[A](value: G[A]): StateT[G, S, A] = StateT.liftF(value)
-        val liftK: G ~> StateT[G, S, *] = StateT.liftK
-        def mapK[A](value: StateT[G, S, A])(scope: G ~> G): StateT[G, S, A] =
-          value.mapK(scope)
-      }
-    }
-
   implicit def writerT[F[_], G[_]: Applicative, L: Monoid](implicit
       inner: LiftKind1[F, G]
   ): LiftKind1[F, WriterT[G, L, *]] =
@@ -115,18 +102,6 @@ object LiftKind1 extends LowPriorityLiftKind1Implicits {
         val liftK: G ~> WriterT[G, L, *] = WriterT.liftK
         def mapK[A](value: WriterT[G, L, A])(scope: G ~> G): WriterT[G, L, A] =
           value.mapK(scope)
-      }
-    }
-
-  implicit def rwst[F[_], G[_]: Applicative, E, L: Monoid, S](implicit
-      inner: LiftKind1[F, G]
-  ): LiftKind1[F, RWST[G, E, L, S, *]] =
-    inner.andThen {
-      new LiftKind1[G, RWST[G, E, L, S, *]] {
-        def liftF[A](value: G[A]): RWST[G, E, L, S, A] = RWST.liftF(value)
-        val liftK: G ~> RWST[G, E, L, S, *] = RWST.liftK
-        def mapK[A](value: RWST[G, E, L, S, A])(f: G ~> G): RWST[G, E, L, S, A] =
-          value.mapK(f)
       }
     }
 }
