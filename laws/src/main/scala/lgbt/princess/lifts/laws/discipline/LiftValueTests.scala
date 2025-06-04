@@ -8,16 +8,16 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{forAll => ∀}
 import org.typelevel.discipline.Laws
 
-trait LiftValueTests[F[_], G[_]] extends Laws {
-  implicit val liftInstance: LiftValue[F, G]
-  implicit val unliftInstance: Unlift[G, F]
+trait LiftValueTests[From[_], To[_]] extends Laws {
+  implicit val liftInstance: LiftValue[From, To]
+  implicit val unliftInstance: Unlift[To, From]
 
-  def laws: LiftValueLaws[F, G] = LiftValueLaws[F, G]
+  def laws: LiftValueLaws[From, To] = LiftValueLaws[From, To]
 
   def liftValue[A](implicit
-      arbFA: Arbitrary[F[A]],
-      eqFA: Eq[Unlift.Result[F, A]],
-      eqGA: Eq[G[A]],
+      arbFA: Arbitrary[From[A]],
+      eqFA: Eq[Unlift.Result[From, A]],
+      eqGA: Eq[To[A]],
   ): RuleSet =
     new SimpleRuleSet(
       name = "liftValue",
@@ -27,12 +27,12 @@ trait LiftValueTests[F[_], G[_]] extends Laws {
 }
 
 object LiftValueTests {
-  def apply[F[_], G[_]](implicit
-      lift: LiftValue[F, G],
-      unlift: Unlift[G, F],
-  ): LiftValueTests[F, G] =
-    new LiftValueTests[F, G] {
-      implicit val liftInstance: LiftValue[F, G] = lift
-      implicit val unliftInstance: Unlift[G, F] = unlift
+  def apply[From[_], To[_]](implicit
+      lift: LiftValue[From, To],
+      unlift: Unlift[To, From],
+  ): LiftValueTests[From, To] =
+    new LiftValueTests[From, To] {
+      implicit val liftInstance: LiftValue[From, To] = lift
+      implicit val unliftInstance: Unlift[To, From] = unlift
     }
 }

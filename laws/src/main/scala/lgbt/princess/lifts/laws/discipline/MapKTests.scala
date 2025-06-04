@@ -8,18 +8,18 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{forAll => ∀}
 import org.typelevel.discipline.Laws
 
-trait MapKTests[F[_], G[_], H[_], I[_]] extends Laws {
-  implicit def mapKInstance: MapK[F, G, H, I]
-  implicit def unlift1Instance: Unlift[H, F]
-  implicit def unlift2Instance: Unlift[I, G]
+trait MapKTests[In1[_], Out1[_], In2[_], Out2[_]] extends Laws {
+  implicit def mapKInstance: MapK[In1, Out1, In2, Out2]
+  implicit def unliftInInstance: Unlift[In2, In1]
+  implicit def unliftOutInstance: Unlift[Out2, Out1]
 
-  def laws: MapKLaws[F, G, H, I] = MapKLaws[F, G, H, I]
+  def laws: MapKLaws[In1, Out1, In2, Out2] = MapKLaws[In1, Out1, In2, Out2]
 
   def mapK[A](implicit
-      arbHA: Arbitrary[H[A]],
-      arbFG: Arbitrary[F ~> G],
-      eqGA: Eq[Unlift.Result[G, A]],
-      eqIA: Eq[I[A]],
+      arbHA: Arbitrary[In2[A]],
+      arbFG: Arbitrary[In1 ~> Out1],
+      eqGA: Eq[Unlift.Result[Out1, A]],
+      eqIA: Eq[Out2[A]],
   ): RuleSet =
     new SimpleRuleSet(
       name = "mapK",
@@ -29,15 +29,15 @@ trait MapKTests[F[_], G[_], H[_], I[_]] extends Laws {
 }
 
 object MapKTests {
-  def apply[F[_], G[_], H[_], I[_]](implicit
-      mk: MapK[F, G, H, I],
-      unlift1: Unlift[H, F],
-      unlift2: Unlift[I, G],
-  ): MapKTests[F, G, H, I] =
-    new MapKTests[F, G, H, I] {
-      implicit val mapKInstance: MapK[F, G, H, I] = mk
-      implicit val unlift1Instance: Unlift[H, F] = unlift1
-      implicit val unlift2Instance: Unlift[I, G] = unlift2
+  def apply[In1[_], Out1[_], In2[_], Out2[_]](implicit
+      mk: MapK[In1, Out1, In2, Out2],
+      unliftIn: Unlift[In2, In1],
+      unliftOut: Unlift[Out2, Out1],
+  ): MapKTests[In1, Out1, In2, Out2] =
+    new MapKTests[In1, Out1, In2, Out2] {
+      implicit val mapKInstance: MapK[In1, Out1, In2, Out2] = mk
+      implicit val unliftInInstance: Unlift[In2, In1] = unliftIn
+      implicit val unliftOutInstance: Unlift[Out2, Out1] = unliftOut
     }
 
   implicit val arbitraryFunctionKListVector: Arbitrary[List ~> Vector] =

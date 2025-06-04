@@ -11,20 +11,20 @@ trait ResourceInstances extends LowPriorityResourceInstances {
       val liftK: F ~> Resource[F, *] = Resource.liftK
     }
 
-  implicit def liftValueResource[F[_], G[_]](implicit
-      inner: LiftValue[F, G]
-  ): LiftValue[F, Resource[G, *]] =
-    inner.andThen(liftValueResource0[G])
+  implicit def liftValueResource[From[_], To[_]](implicit
+      inner: LiftValue[From, To]
+  ): LiftValue[From, Resource[To, *]] =
+    inner.andThen(liftValueResource0[To])
 
-  implicit def liftKindResource[F[_], G[_]](implicit
-      G: MonadCancel[G, ?],
-      inner: LiftKind[F, G]
-  ): LiftKind[F, Resource[G, *]] =
+  implicit def liftKindResource[From[_], To[_]](implicit
+      G: MonadCancel[To, ?],
+      inner: LiftKind[From, To]
+  ): LiftKind[From, Resource[To, *]] =
     inner.andThen {
-      new LiftKind[G, Resource[G, *]] {
-        def liftF[A](value: G[A]): Resource[G, A] = Resource.eval(value)
-        val liftK: G ~> Resource[G, *] = Resource.liftK
-        def limitedMapK[A](value: Resource[G, A])(scope: G ~> G): Resource[G, A] =
+      new LiftKind[To, Resource[To, *]] {
+        def liftF[A](value: To[A]): Resource[To, A] = Resource.eval(value)
+        val liftK: To ~> Resource[To, *] = Resource.liftK
+        def limitedMapK[A](value: Resource[To, A])(scope: To ~> To): Resource[To, A] =
           value.mapK(scope)
       }
     }
@@ -36,8 +36,8 @@ trait ResourceInstances extends LowPriorityResourceInstances {
   ): LiftKind2[F, G, Resource[H, *], Resource[I, *]] =
     inner.andThen {
       new LiftKind2[H, I, Resource[H, *], Resource[I, *]] {
-        val liftValue1: LiftValue[H, Resource[H, *]] = liftValueResource0
-        val liftValue2: LiftValue[I, Resource[I, *]] = liftValueResource0
+        val liftValueInput: LiftValue[H, Resource[H, *]] = liftValueResource0
+        val liftValueOutput: LiftValue[I, Resource[I, *]] = liftValueResource0
         def mapK[A](value: Resource[H, A])(f: H ~> I): Resource[I, A] =
           value.mapK(f)
       }
@@ -45,15 +45,15 @@ trait ResourceInstances extends LowPriorityResourceInstances {
 }
 
 sealed trait LowPriorityResourceInstances {
-  implicit def liftKind1Resource[F[_], G[_]](implicit
-      F: MonadCancel[G, ?],
-      inner: LiftKind1[F, G]
-  ): LiftKind1[F, Resource[G, *]] =
+  implicit def liftKind1Resource[From[_], To[_]](implicit
+      F: MonadCancel[To, ?],
+      inner: LiftKind1[From, To]
+  ): LiftKind1[From, Resource[To, *]] =
     inner.andThen {
-      new LiftKind1[G, Resource[G, *]] {
-        def liftF[A](value: G[A]): Resource[G, A] = Resource.eval(value)
-        val liftK: G ~> Resource[G, *] = Resource.liftK
-        def mapK[A](value: Resource[G, A])(f: G ~> G): Resource[G, A] =
+      new LiftKind1[To, Resource[To, *]] {
+        def liftF[A](value: To[A]): Resource[To, A] = Resource.eval(value)
+        val liftK: To ~> Resource[To, *] = Resource.liftK
+        def mapK[A](value: Resource[To, A])(f: To ~> To): Resource[To, A] =
           value.mapK(f)
       }
     }

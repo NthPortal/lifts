@@ -5,28 +5,30 @@ import cats.{Applicative, ~>}
 import cats.mtl.Local
 
 trait LocalSyntax {
-  implicit def toLocalLiftToOps[F[_], E](local: Local[F, E]): LocalSyntax.LocalLiftToOps[F, E] =
+  implicit def toLocalLiftToOps[From[_], E](
+      local: Local[From, E]
+  ): LocalSyntax.LocalLiftToOps[From, E] =
     new LocalSyntax.LocalLiftToOps(local)
 }
 
 object LocalSyntax extends LocalSyntax {
-  private[this] final class LiftedLocal[F[_], G[_], E](
-      underlying: Local[F, E]
-  )(implicit G: Applicative[G], lk: LiftKind[F, G])
-      extends Local[G, E] {
-    val applicative: Applicative[G] = G
-    def ask[E2 >: E]: G[E2] = lk.liftF(underlying.ask[E2])
-    def local[A](ga: G[A])(f: E => E): G[A] =
+  private[this] final class LiftedLocal[From[_], To[_], E](
+      underlying: Local[From, E]
+  )(implicit G: Applicative[To], lk: LiftKind[From, To])
+      extends Local[To, E] {
+    val applicative: Applicative[To] = G
+    def ask[E2 >: E]: To[E2] = lk.liftF(underlying.ask[E2])
+    def local[A](ga: To[A])(f: E => E): To[A] =
       lk.limitedMapK(ga) {
-        new (F ~> F) {
-          def apply[B](fb: F[B]): F[B] = underlying.local(fb)(f)
+        new (From ~> From) {
+          def apply[B](fb: From[B]): From[B] = underlying.local(fb)(f)
         }
       }
   }
 
-  final class LocalLiftToOps[F[_], E] private[LocalSyntax] (private val local: Local[F, E])
+  final class LocalLiftToOps[From[_], E] private[LocalSyntax] (private val local: Local[From, E])
       extends AnyVal {
-    def liftTo[G[_]: Applicative](implicit lk: LiftKind[F, G]): Local[G, E] =
+    def liftTo[To[_]: Applicative](implicit lk: LiftKind[From, To]): Local[To, E] =
       new LiftedLocal(local)
   }
 }

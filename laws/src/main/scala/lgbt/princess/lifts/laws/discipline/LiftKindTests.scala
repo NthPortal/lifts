@@ -8,18 +8,18 @@ import org.scalacheck.{Arbitrary, Prop}
 import org.scalacheck.Prop.{forAll => ∀}
 import org.typelevel.discipline.Laws
 
-trait LiftKindTests[F[_], G[_]] extends LiftValueTests[F, G] with LiftScopeTests[F, G] {
-  implicit val liftInstance: LiftKind[F, G]
-  implicit val unliftInstance: Unlift[G, F]
+trait LiftKindTests[From[_], To[_]] extends LiftValueTests[From, To] with LiftScopeTests[From, To] {
+  implicit val liftInstance: LiftKind[From, To]
+  implicit val unliftInstance: Unlift[To, From]
 
-  override def laws: LiftKindLaws[F, G] = LiftKindLaws[F, G]
+  override def laws: LiftKindLaws[From, To] = LiftKindLaws[From, To]
 
   def liftKind[A](implicit
-      arbFA: Arbitrary[F[A]],
-      arbGA: Arbitrary[G[A]],
-      arbFF: Arbitrary[F ~> F],
-      eqFA: Eq[Unlift.Result[F, A]],
-      eqGA: Eq[G[A]],
+      arbFA: Arbitrary[From[A]],
+      arbGA: Arbitrary[To[A]],
+      arbFF: Arbitrary[From ~> From],
+      eqFA: Eq[Unlift.Result[From, A]],
+      eqGA: Eq[To[A]],
   ): RuleSet =
     new RuleSet {
       def name: String = "liftKind"
@@ -33,13 +33,13 @@ trait LiftKindTests[F[_], G[_]] extends LiftValueTests[F, G] with LiftScopeTests
 }
 
 object LiftKindTests {
-  def apply[F[_], G[_]](implicit
-      lift: LiftKind[F, G],
-      unlift: Unlift[G, F],
-  ): LiftKindTests[F, G] =
-    new LiftKindTests[F, G] {
-      implicit val liftInstance: LiftKind[F, G] = lift
-      implicit val unliftInstance: Unlift[G, F] = unlift
+  def apply[From[_], To[_]](implicit
+      lift: LiftKind[From, To],
+      unlift: Unlift[To, From],
+  ): LiftKindTests[From, To] =
+    new LiftKindTests[From, To] {
+      implicit val liftInstance: LiftKind[From, To] = lift
+      implicit val unliftInstance: Unlift[To, From] = unlift
     }
 
   implicit def arbitraryFunctionKListList: Arbitrary[List ~> List] =

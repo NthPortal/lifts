@@ -8,15 +8,15 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{forAll => ∀}
 import org.typelevel.discipline.Laws
 
-trait LiftScopeTests[F[_], G[_]] extends Laws {
-  implicit val liftInstance: LiftScope[F, G]
+trait LiftScopeTests[From[_], To[_]] extends Laws {
+  implicit val liftInstance: LiftScope[From, To]
 
-  def laws: LiftScopeLaws[F, G] = LiftScopeLaws[F, G]
+  def laws: LiftScopeLaws[From, To] = LiftScopeLaws[From, To]
 
   def liftScope[A](implicit
-      arbGA: Arbitrary[G[A]],
-      arbFF: Arbitrary[F ~> F],
-      eqGA: Eq[G[A]],
+      arbGA: Arbitrary[To[A]],
+      arbFF: Arbitrary[From ~> From],
+      eqGA: Eq[To[A]],
   ): RuleSet =
     new SimpleRuleSet(
       name = "liftScope",
@@ -26,9 +26,9 @@ trait LiftScopeTests[F[_], G[_]] extends Laws {
 }
 
 object LiftScopeTests {
-  def apply[F[_], G[_]](implicit lift: LiftScope[F, G]): LiftScopeTests[F, G] =
-    new LiftScopeTests[F, G] {
-      implicit val liftInstance: LiftScope[F, G] = lift
+  def apply[From[_], To[_]](implicit lift: LiftScope[From, To]): LiftScopeTests[From, To] =
+    new LiftScopeTests[From, To] {
+      implicit val liftInstance: LiftScope[From, To] = lift
     }
 
   implicit val arbitraryFunctionKListList: Arbitrary[List ~> List] =

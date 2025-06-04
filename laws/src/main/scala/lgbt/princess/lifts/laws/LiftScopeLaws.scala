@@ -6,21 +6,21 @@ import cats.~>
 import cats.laws.IsEq
 import cats.laws.IsEqArrow
 
-trait LiftScopeLaws[F[_], G[_]] {
-  implicit def liftInstance: LiftScope[F, G]
+trait LiftScopeLaws[From[_], To[_]] {
+  implicit def liftInstance: LiftScope[From, To]
 
   // external law:
-  def limitedMapKIdentityIsPure[A](ga: G[A]): IsEq[G[A]] =
+  def limitedMapKIdentityIsPure[A](ga: To[A]): IsEq[To[A]] =
     liftInstance.limitedMapK(ga)(FunctionK.id) <-> ga
 
   // internal law:
-  def limitedMapKLiftScopeConsistency[A](ga: G[A], scope: F ~> F): IsEq[G[A]] =
+  def limitedMapKLiftScopeConsistency[A](ga: To[A], scope: From ~> From): IsEq[To[A]] =
     liftInstance.limitedMapK(ga)(scope) <-> liftInstance.liftScope(scope)(ga)
 }
 
 object LiftScopeLaws {
-  def apply[F[_], G[_]](implicit lift: LiftScope[F, G]): LiftScopeLaws[F, G] =
-    new LiftScopeLaws[F, G] {
-      implicit val liftInstance: LiftScope[F, G] = lift
+  def apply[From[_], To[_]](implicit lift: LiftScope[From, To]): LiftScopeLaws[From, To] =
+    new LiftScopeLaws[From, To] {
+      implicit val liftInstance: LiftScope[From, To] = lift
     }
 }

@@ -4,9 +4,9 @@ package instances
 import cats.effect.{IO, LiftIO}
 
 trait LiftIOInstances {
-  implicit def liftValueLiftIO[F[_]](implicit liftIO: LiftIO[F]): LiftValue[IO, F] =
-    new LiftValue.LiftKFromLiftF[IO, F] {
-      def liftF[A](value: IO[A]): F[A] = liftIO.liftIO(value)
+  implicit def liftValueLiftIO[To[_]](implicit liftIO: LiftIO[To]): LiftValue[IO, To] =
+    new LiftValue.LiftKFromLiftF[IO, To] {
+      def liftF[A](value: IO[A]): To[A] = liftIO.liftIO(value)
     }
 }
 

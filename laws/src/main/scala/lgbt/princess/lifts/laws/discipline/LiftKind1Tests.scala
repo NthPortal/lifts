@@ -8,19 +8,21 @@ import org.scalacheck.{Arbitrary, Prop}
 import org.scalacheck.Prop.{forAll => ∀}
 import org.typelevel.discipline.Laws
 
-trait LiftKind1Tests[F[_], G[_]] extends LiftValueTests[F, G] with MapKTests[F, F, G, G] {
-  implicit val liftInstance: LiftKind1[F, G]
-  implicit final def mapKInstance: MapK[F, F, G, G] = liftInstance
-  implicit val unliftInstance: Unlift[G, F]
+trait LiftKind1Tests[From[_], To[_]]
+    extends LiftValueTests[From, To]
+    with MapKTests[From, From, To, To] {
+  implicit val liftInstance: LiftKind1[From, To]
+  implicit final def mapKInstance: MapK[From, From, To, To] = liftInstance
+  implicit val unliftInstance: Unlift[To, From]
 
-  override def laws: LiftKind1Laws[F, G] = LiftKind1Laws[F, G]
+  override def laws: LiftKind1Laws[From, To] = LiftKind1Laws[From, To]
 
   def liftKind1[A](implicit
-      arbFA: Arbitrary[F[A]],
-      arbGA: Arbitrary[G[A]],
-      arbFF: Arbitrary[F ~> F],
-      eqFA: Eq[Unlift.Result[F, A]],
-      eqGA: Eq[G[A]],
+      arbFA: Arbitrary[From[A]],
+      arbGA: Arbitrary[To[A]],
+      arbFF: Arbitrary[From ~> From],
+      eqFA: Eq[Unlift.Result[From, A]],
+      eqGA: Eq[To[A]],
   ): RuleSet =
     new RuleSet {
       def name: String = "liftKind1"
@@ -35,15 +37,15 @@ trait LiftKind1Tests[F[_], G[_]] extends LiftValueTests[F, G] with MapKTests[F, 
 }
 
 object LiftKind1Tests {
-  def apply[F[_], G[_]](implicit
-      lift: LiftKind1[F, G],
-      unlift: Unlift[G, F]
-  ): LiftKind1Tests[F, G] =
-    new LiftKind1Tests[F, G] {
-      implicit val liftInstance: LiftKind1[F, G] = lift
-      implicit val unliftInstance: Unlift[G, F] = unlift
-      implicit def unlift1Instance: Unlift[G, F] = unliftInstance
-      implicit def unlift2Instance: Unlift[G, F] = unliftInstance
+  def apply[From[_], To[_]](implicit
+      lift: LiftKind1[From, To],
+      unlift: Unlift[To, From]
+  ): LiftKind1Tests[From, To] =
+    new LiftKind1Tests[From, To] {
+      implicit val liftInstance: LiftKind1[From, To] = lift
+      implicit val unliftInstance: Unlift[To, From] = unlift
+      implicit def unliftInInstance: Unlift[To, From] = unliftInstance
+      implicit def unliftOutInstance: Unlift[To, From] = unliftInstance
     }
 
   implicit def arbitraryFunctionKListList: Arbitrary[List ~> List] =

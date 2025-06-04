@@ -6,58 +6,63 @@ import cats.~>
 import scala.annotation.implicitNotFound
 
 /**
- * Lifts scope transformations from the higher-kinded type `F` to the higher-kinded type `G`.
+ * Lifts scope transformations from the higher-kinded type `From` to the higher-kinded type `To`.
  */
-@implicitNotFound("no way defined to lift scopes from ${F} to ${G}")
-trait LiftScope[F[_], G[_]] {
+@implicitNotFound("no way defined to lift scopes from ${From} to ${To}")
+trait LiftScope[From[_], To[_]] {
 
   /**
-   * Modifies the context of `G[A]` using the given scope transformation in `F`.
+   * Modifies the context of `G[A]` using the given scope transformation in `From`.
    *
    * @note
-   *   This method is usually best implemented by a `mapK` method on `G`.
+   *   This method is usually best implemented by a `mapK` method on `To`.
    */
-  def limitedMapK[A](value: G[A])(scope: F ~> F): G[A]
+  def limitedMapK[A](value: To[A])(scope: From ~> From): To[A]
 
   /**
-   * Lifts a scope transformation in `F` into a scope operation in `G`.
+   * Lifts a scope transformation in `From` into a scope operation in `To`.
    *
    * @note
    *   Implementors SHOULD NOT override this method; the only reason it is not final is for
    *   optimization of the identity case.
    */
-  def liftScope(scope: F ~> F): G ~> G =
-    new (G ~> G) {
-      def apply[A](fa: G[A]): G[A] = limitedMapK(fa)(scope)
+  def liftScope(scope: From ~> From): To ~> To =
+    new (To ~> To) {
+      def apply[A](fa: To[A]): To[A] = limitedMapK(fa)(scope)
     }
 
-  def andThen[H[_]](that: LiftScope[G, H]): LiftScope[F, H] =
+  def andThen[Last[_]](that: LiftScope[To, Last]): LiftScope[From, Last] =
     LiftScope.Composed(this, that)
 
-  def compose[E[_]](that: LiftScope[E, F]): LiftScope[E, G] =
+  def compose[First[_]](that: LiftScope[First, From]): LiftScope[First, To] =
     LiftScope.Composed(that, this)
 }
 
 object LiftScope {
 
-  private[this] final class Composed[F[_], G[_], H[_]] private (
-      inner: LiftScope[F, G],
-      outer: LiftScope[G, H]
-  ) extends LiftScope[F, H] {
-    def limitedMapK[A](value: H[A])(scope: F ~> F): H[A] =
+  private[this] final class Composed[From[_], Middle[_], To[_]] private (
+      inner: LiftScope[From, Middle],
+      outer: LiftScope[Middle, To],
+  ) extends LiftScope[From, To] {
+    def limitedMapK[A](value: To[A])(scope: From ~> From): To[A] =
       outer.limitedMapK(value)(inner.liftScope(scope))
-    override def liftScope(scope: F ~> F): H ~> H =
+    override def liftScope(scope: From ~> From): To ~> To =
       outer.liftScope(inner.liftScope(scope))
   }
 
   private object Composed {
-    def apply[F[_], G[_], H[_]](inner: LiftScope[F, G], outer: LiftScope[G, H]): LiftScope[F, H] =
-      if (inner.isInstanceOf[Identity]) outer.asInstanceOf[LiftScope[F, H]]
-      else if (outer.isInstanceOf[Identity]) inner.asInstanceOf[LiftScope[F, H]]
+    def apply[From[_], Middle[_], To[_]](
+        inner: LiftScope[From, Middle],
+        outer: LiftScope[Middle, To],
+    ): LiftScope[From, To] =
+      if (inner.isInstanceOf[Identity]) outer.asInstanceOf[LiftScope[From, To]]
+      else if (outer.isInstanceOf[Identity]) inner.asInstanceOf[LiftScope[From, To]]
       else new Composed(inner, outer)
   }
 
-  def apply[F[_], G[_]](implicit ls: LiftScope[F, G]): LiftScope[F, G] = ls
+  type Derived[From[_], Wrapper[_[_], _]] = LiftScope[From, Wrapper[From, *]]
+
+  def apply[From[_], To[_]](implicit ls: LiftScope[From, To]): LiftScope[From, To] = ls
 
   implicit def id[F[_]]: LiftScope[F, F] =
     new LiftScope[F, F] with Identity {
@@ -65,48 +70,52 @@ object LiftScope {
       override def liftScope(scope: F ~> F): F ~> F = scope
     }
 
-  implicit def optionT[F[_], G[_]](implicit inner: LiftScope[F, G]): LiftScope[F, OptionT[G, *]] =
+  implicit def optionT[From[_], To[_]](implicit
+      inner: LiftScope[From, To]
+  ): LiftScope[From, OptionT[To, *]] =
     inner.andThen {
-      new LiftScope[G, OptionT[G, *]] {
-        def limitedMapK[A](value: OptionT[G, A])(scope: G ~> G): OptionT[G, A] =
+      new LiftScope[To, OptionT[To, *]] {
+        def limitedMapK[A](value: OptionT[To, A])(scope: To ~> To): OptionT[To, A] =
           value.mapK(scope)
       }
     }
 
-  implicit def eitherT[F[_], G[_], L](implicit
-      inner: LiftScope[F, G]
-  ): LiftScope[F, EitherT[G, L, *]] =
+  implicit def eitherT[From[_], To[_], L](implicit
+      inner: LiftScope[From, To]
+  ): LiftScope[From, EitherT[To, L, *]] =
     inner.andThen {
-      new LiftScope[G, EitherT[G, L, *]] {
-        def limitedMapK[A](value: EitherT[G, L, A])(scope: G ~> G): EitherT[G, L, A] =
+      new LiftScope[To, EitherT[To, L, *]] {
+        def limitedMapK[A](value: EitherT[To, L, A])(scope: To ~> To): EitherT[To, L, A] =
           value.mapK(scope)
       }
     }
 
-  implicit def iorT[F[_], G[_], L](implicit inner: LiftScope[F, G]): LiftScope[F, IorT[G, L, *]] =
+  implicit def iorT[From[_], To[_], L](implicit
+      inner: LiftScope[From, To]
+  ): LiftScope[From, IorT[To, L, *]] =
     inner.andThen {
-      new LiftScope[G, IorT[G, L, *]] {
-        def limitedMapK[A](value: IorT[G, L, A])(scope: G ~> G): IorT[G, L, A] =
+      new LiftScope[To, IorT[To, L, *]] {
+        def limitedMapK[A](value: IorT[To, L, A])(scope: To ~> To): IorT[To, L, A] =
           value.mapK(scope)
       }
     }
 
-  implicit def kleisli[F[_], G[_], A](implicit
-      inner: LiftScope[F, G]
-  ): LiftScope[F, Kleisli[G, A, *]] =
+  implicit def kleisli[From[_], To[_], A](implicit
+      inner: LiftScope[From, To]
+  ): LiftScope[From, Kleisli[To, A, *]] =
     inner.andThen {
-      new LiftScope[G, Kleisli[G, A, *]] {
-        def limitedMapK[B](value: Kleisli[G, A, B])(scope: G ~> G): Kleisli[G, A, B] =
+      new LiftScope[To, Kleisli[To, A, *]] {
+        def limitedMapK[B](value: Kleisli[To, A, B])(scope: To ~> To): Kleisli[To, A, B] =
           value.mapK(scope)
       }
     }
 
-  implicit def writerT[F[_], G[_], L](implicit
-      inner: LiftScope[F, G]
-  ): LiftScope[F, WriterT[G, L, *]] =
+  implicit def writerT[From[_], To[_], L](implicit
+      inner: LiftScope[From, To]
+  ): LiftScope[From, WriterT[To, L, *]] =
     inner.andThen {
-      new LiftScope[G, WriterT[G, L, *]] {
-        def limitedMapK[A](value: WriterT[G, L, A])(scope: G ~> G): WriterT[G, L, A] =
+      new LiftScope[To, WriterT[To, L, *]] {
+        def limitedMapK[A](value: WriterT[To, L, A])(scope: To ~> To): WriterT[To, L, A] =
           value.mapK(scope)
       }
     }
