@@ -78,6 +78,8 @@ lazy val lifts = tlCrossRootProject
     laws,
     mtl,
     ce,
+    free,
+    fs2support
   )
 
 lazy val core =
@@ -131,7 +133,7 @@ lazy val ce =
   crossProject(JVMPlatform, JSPlatform)
     .crossType(CrossType.Pure)
     .in(file("ce"))
-    .dependsOn(core, laws % "compile->test", mtl % "compile->test")
+    .dependsOn(core, laws % "compile->test")
     .settings(sharedSettings)
     .settings(
       name := "lifts-ce",
@@ -139,7 +141,40 @@ lazy val ce =
         catsEffect.value,
         catsCore.value % Test,
         catsEffectTestkit.value,
-        catsMtl.value % Test,
         munitCatsEffect.value,
+        munitDiscipline.value,
+      )
+    )
+
+lazy val free =
+  crossProject(JVMPlatform, JSPlatform)
+    .crossType(CrossType.Pure)
+    .in(file("free"))
+    .dependsOn(core, laws % "compile->test")
+    .settings(sharedSettings)
+    .settings(
+      name := "lifts-free",
+      libraryDependencies ++= Seq(
+        catsFree.value,
+        catsCore.value % Test,
+        munitDiscipline.value,
+      )
+    )
+
+lazy val fs2support =
+  crossProject(JVMPlatform, JSPlatform)
+    .crossType(CrossType.Pure)
+    .in(file("fs2"))
+    .dependsOn(core, laws % "compile->test", ce % "test->test")
+    .settings(sharedSettings)
+    .settings(
+      name := "lifts-fs2",
+      libraryDependencies ++= Seq(
+        catsEffect.value,
+        fs2.value,
+        catsCore.value % Test,
+        catsEffectTestkit.value,
+        munitCatsEffect.value,
+        munitDiscipline.value,
       )
     )

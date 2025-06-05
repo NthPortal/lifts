@@ -1,7 +1,7 @@
 package lgbt.princess.lifts
 
-import cats.data.{EitherT, IorT, Kleisli, OptionT, WriterT}
-import cats.~>
+import cats.data.{EitherT, IorT, Kleisli, OptionT, StateT, WriterT}
+import cats.{Functor, ~>}
 
 trait MapK[In1[_], Out1[_], In2[_], Out2[_]] {
   def mapK[A](value: In2[A])(f: In1 ~> Out1): Out2[A]
@@ -103,4 +103,16 @@ object MapK {
           value.mapK(f)
       }
     }
+
+  object MonadMorphismOnly {
+    implicit def stateT[In1[_], Out1[_], In2[_]: Functor, Out2[_], S](implicit
+        inner: MapK[In1, Out1, In2, Out2]
+    ): MapK[In1, Out1, StateT[In2, S, *], StateT[Out2, S, *]] =
+      inner.andThen {
+        new MapK[In2, Out2, StateT[In2, S, *], StateT[Out2, S, *]] {
+          def mapK[A](value: StateT[In2, S, A])(f: In2 ~> Out2): StateT[Out2, S, A] =
+            value.mapK(f)
+        }
+      }
+  }
 }

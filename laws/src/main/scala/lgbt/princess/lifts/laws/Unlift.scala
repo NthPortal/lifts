@@ -1,9 +1,9 @@
 package lgbt.princess.lifts.laws
 
-import cats.{Eq, Functor, Monad, Monoid, Show}
-import cats.data.{EitherT, IorT, Kleisli, OptionT, RWST, StateT, WriterT}
+import cats.data._
 import cats.syntax.functor._
 import cats.syntax.show._
+import cats.{Eq, Functor, Monad, Monoid, Show}
 import lgbt.princess.lifts.Identity
 
 /** Un-lifts the higher-kinded type `From` to the higher-kinded type `To`. */
