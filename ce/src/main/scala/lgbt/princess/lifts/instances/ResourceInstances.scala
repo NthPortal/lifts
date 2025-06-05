@@ -29,16 +29,16 @@ trait ResourceInstances extends LowPriorityResourceInstances {
       }
     }
 
-  implicit def liftKind2Resource[F[_], G[_], H[_], I[_]](implicit
-      H: MonadCancel[H, ?],
-      I: MonadCancel[I, ?],
-      inner: LiftKind2[F, G, H, I]
-  ): LiftKind2[F, G, Resource[H, *], Resource[I, *]] =
+  implicit def liftKind2Resource[In1[_], Out1[_], In2[_], Out2[_]](implicit
+      H: MonadCancel[In2, ?],
+      I: MonadCancel[Out2, ?],
+      inner: LiftKind2[In1, Out1, In2, Out2]
+  ): LiftKind2[In1, Out1, Resource[In2, *], Resource[Out2, *]] =
     inner.andThen {
-      new LiftKind2[H, I, Resource[H, *], Resource[I, *]] {
-        val liftValueInput: LiftValue[H, Resource[H, *]] = liftValueResource0
-        val liftValueOutput: LiftValue[I, Resource[I, *]] = liftValueResource0
-        def mapK[A](value: Resource[H, A])(f: H ~> I): Resource[I, A] =
+      new LiftKind2[In2, Out2, Resource[In2, *], Resource[Out2, *]] {
+        val liftValueInput: LiftValue[In2, Resource[In2, *]] = liftValueResource0
+        val liftValueOutput: LiftValue[Out2, Resource[Out2, *]] = liftValueResource0
+        def mapK[A](value: Resource[In2, A])(f: In2 ~> Out2): Resource[Out2, A] =
           value.mapK(f)
       }
     }
