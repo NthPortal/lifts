@@ -4,14 +4,13 @@ import cats.data._
 import cats.syntax.functor._
 import cats.syntax.show._
 import cats.{Eq, Functor, Monad, Monoid, Show}
-import lgbt.princess.lifts.Identity
 
 /** Un-lifts the higher-kinded type `From` to the higher-kinded type `To`. */
 trait Unlift[From[_], To[_]] {
   def functor: Functor[To]
 
   /**
-   * Un-lifts `G[A]` to `F[A]`, if possible.
+   * Un-lifts `From[A]` to `To[A]`, if possible.
    *
    * @return
    *   a [[Unlift.Result `Result`]] containing [[scala.Right `Right`]] of the value if it was
@@ -29,26 +28,6 @@ trait Unlift[From[_], To[_]] {
 }
 
 object Unlift {
-  private[this] final class Composed[From[_], Middle[_], To[_]] private (
-      inner: Unlift[From, Middle],
-      outer: Unlift[Middle, To]
-  ) extends Unlift[From, To] {
-    implicit def functor: Functor[To] = outer.functor
-    def unlift[A](value: From[A]): Result[To, A] =
-      outer
-        .unlift(inner.unlift(value).value)
-        .subflatMap(identity)
-  }
-
-  private object Composed {
-    def apply[From[_], Middle[_], To[_]](
-        inner: Unlift[From, Middle],
-        outer: Unlift[Middle, To]
-    ): Unlift[From, To] =
-      if (inner.isInstanceOf[Identity]) outer.asInstanceOf[Unlift[From, To]]
-      else if (outer.isInstanceOf[Identity]) inner.asInstanceOf[Unlift[From, To]]
-      else new Composed(inner, outer)
-  }
 
   type Derived[Wrapper[_[_], _], To[_]] = Unlift[Wrapper[To, *], To]
 
@@ -69,23 +48,32 @@ object Unlift {
   def success[F[_]: Functor, A](value: F[A]): Result[F, A] =
     EitherT.liftF(value)
 
-  implicit def id[F[_]](implicit F: Functor[F]): Unlift[F, F] =
-    new Unlift[F, F] with Identity {
-      val functor: Functor[F] = F
-      def unlift[A](value: F[A]): Result[F, A] = success(value)
-    }
+  private[this] final class Identity[F[_]](implicit val functor: Functor[F]) extends Unlift[F, F] {
+    def unlift[A](value: F[A]): Result[F, A] = success(value)
+  }
 
-  implicit def optionT[From[_], To[_]](implicit
-      From: Functor[From],
-      outer: Unlift[From, To]
-  ): Unlift[OptionT[From, *], To] =
-    outer.compose {
-      new Unlift[OptionT[From, *], From] {
-        val functor: Functor[From] = From
-        def unlift[A](value: OptionT[From, A]): Result[From, A] =
-          value.toRight(Failure("OptionT.empty"))
-      }
-    }
+  private[this] final class Composed[From[_], Middle[_], To[_]] private (
+      inner: Unlift[From, Middle],
+      outer: Unlift[Middle, To]
+  ) extends Unlift[From, To] {
+    implicit def functor: Functor[To] = outer.functor
+    def unlift[A](value: From[A]): Result[To, A] =
+      outer
+        .unlift(inner.unlift(value).value)
+        .subflatMap(identity)
+  }
+
+  private object Composed {
+    def apply[From[_], Middle[_], To[_]](
+        inner: Unlift[From, Middle],
+        outer: Unlift[Middle, To]
+    ): Unlift[From, To] =
+      if (inner.isInstanceOf[Identity[From]]) outer.asInstanceOf[Unlift[From, To]]
+      else if (outer.isInstanceOf[Identity[Middle]]) inner.asInstanceOf[Unlift[From, To]]
+      else new Composed(inner, outer)
+  }
+
+  implicit def id[F[_]: Functor]: Unlift[F, F] = new Identity[F]
 
   implicit def eitherT[From[_], To[_], L: Show](implicit
       From: Functor[From],
@@ -123,15 +111,27 @@ object Unlift {
       }
     }
 
-  implicit def writerT[From[_], To[_], L](implicit
+  implicit def optionT[From[_], To[_]](implicit
       From: Functor[From],
       outer: Unlift[From, To]
-  ): Unlift[WriterT[From, L, *], To] =
+  ): Unlift[OptionT[From, *], To] =
     outer.compose {
-      new Unlift[WriterT[From, L, *], From] {
+      new Unlift[OptionT[From, *], From] {
         val functor: Functor[From] = From
-        def unlift[A](value: WriterT[From, L, A]): Result[From, A] =
-          success(value.value)
+        def unlift[A](value: OptionT[From, A]): Result[From, A] =
+          value.toRight(Failure("OptionT.empty"))
+      }
+    }
+
+  implicit def rwst[From[_], To[_], E: Monoid, L, S: Monoid](implicit
+      From: Monad[From],
+      outer: Unlift[From, To]
+  ): Unlift[RWST[From, E, L, S, *], To] =
+    outer.compose {
+      new Unlift[RWST[From, E, L, S, *], From] {
+        val functor: Functor[From] = From
+        def unlift[A](value: RWST[From, E, L, S, A]): Result[From, A] =
+          success(value.run(Monoid[E].empty, Monoid[S].empty).map(_._3))
       }
     }
 
@@ -147,15 +147,15 @@ object Unlift {
       }
     }
 
-  implicit def rwst[From[_], To[_], E: Monoid, L, S: Monoid](implicit
-      From: Monad[From],
+  implicit def writerT[From[_], To[_], L](implicit
+      From: Functor[From],
       outer: Unlift[From, To]
-  ): Unlift[RWST[From, E, L, S, *], To] =
+  ): Unlift[WriterT[From, L, *], To] =
     outer.compose {
-      new Unlift[RWST[From, E, L, S, *], From] {
+      new Unlift[WriterT[From, L, *], From] {
         val functor: Functor[From] = From
-        def unlift[A](value: RWST[From, E, L, S, A]): Result[From, A] =
-          success(value.run(Monoid[E].empty, Monoid[S].empty).map(_._3))
+        def unlift[A](value: WriterT[From, L, A]): Result[From, A] =
+          success(value.value)
       }
     }
 }

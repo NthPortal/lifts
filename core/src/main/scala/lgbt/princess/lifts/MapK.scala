@@ -20,6 +20,21 @@ trait MapK[In1[_], Out1[_], In2[_], Out2[_]] {
 
 object MapK {
 
+  type Derived[In[_], Out[_], Wrapper[_[_], _]] =
+    MapK[In, Out, Wrapper[In, *], Wrapper[Out, *]]
+
+  def apply[In1[_], Out1[_], In2[_], Out2[_]](implicit
+      ev: MapK[In1, Out1, In2, Out2]
+  ): MapK[In1, Out1, In2, Out2] = ev
+
+  private[lifts] trait Identity[In[_], Out[_]] extends MapK[In, Out, In, Out] {
+    def mapK[A](value: In[A])(f: In ~> Out): Out[A] = f(value)
+    override def liftFunctionK(f: In ~> Out): In ~> Out = f
+  }
+
+  private[this] val _identity =
+    new Identity[({ type L[_] = Any })#L, ({ type L[_] = Any })#L] {}
+
   private[this] final class Composed[In1[_], Out1[_], In2[_], Out2[_], In3[_], Out3[_]] private (
       inner: MapK[In1, Out1, In2, Out2],
       outer: MapK[In2, Out2, In3, Out3],
@@ -35,34 +50,15 @@ object MapK {
         inner: MapK[In1, Out1, In2, Out2],
         outer: MapK[In2, Out2, In3, Out3],
     ): MapK[In1, Out1, In3, Out3] = {
-      if (inner.isInstanceOf[Identity]) outer.asInstanceOf[MapK[In1, Out1, In3, Out3]]
-      else if (outer.isInstanceOf[Identity]) inner.asInstanceOf[MapK[In1, Out1, In3, Out3]]
+      if (inner.isInstanceOf[Identity[In1, Out1]]) outer.asInstanceOf[MapK[In1, Out1, In3, Out3]]
+      else if (outer.isInstanceOf[Identity[In2, Out2]])
+        inner.asInstanceOf[MapK[In1, Out1, In3, Out3]]
       else new Composed(inner, outer)
     }
   }
 
-  type Derived[In[_], Out[_], Wrapper[_[_], _]] =
-    MapK[In, Out, Wrapper[In, *], Wrapper[Out, *]]
-
-  def apply[In1[_], Out1[_], In2[_], Out2[_]](implicit
-      ev: MapK[In1, Out1, In2, Out2]
-  ): MapK[In1, Out1, In2, Out2] = ev
-
   implicit def id[In[_], Out[_]]: MapK[In, Out, In, Out] =
-    new MapK[In, Out, In, Out] with Identity {
-      def mapK[A](value: In[A])(f: In ~> Out): Out[A] = f(value)
-      override def liftFunctionK(f: In ~> Out): In ~> Out = f
-    }
-
-  implicit def optionT[In1[_], Out1[_], In2[_], Out2[_]](implicit
-      inner: MapK[In1, Out1, In2, Out2]
-  ): MapK[In1, Out1, OptionT[In2, *], OptionT[Out2, *]] =
-    inner.andThen {
-      new MapK[In2, Out2, OptionT[In2, *], OptionT[Out2, *]] {
-        def mapK[A](value: OptionT[In2, A])(f: In2 ~> Out2): OptionT[Out2, A] =
-          value.mapK(f)
-      }
-    }
+    _identity.asInstanceOf[Identity[In, Out]]
 
   implicit def eitherT[In1[_], Out1[_], In2[_], Out2[_], L](implicit
       inner: MapK[In1, Out1, In2, Out2]
@@ -90,6 +86,16 @@ object MapK {
     inner.andThen {
       new MapK[In2, Out2, Kleisli[In2, A, *], Kleisli[Out2, A, *]] {
         def mapK[B](value: Kleisli[In2, A, B])(f: In2 ~> Out2): Kleisli[Out2, A, B] =
+          value.mapK(f)
+      }
+    }
+
+  implicit def optionT[In1[_], Out1[_], In2[_], Out2[_]](implicit
+      inner: MapK[In1, Out1, In2, Out2]
+  ): MapK[In1, Out1, OptionT[In2, *], OptionT[Out2, *]] =
+    inner.andThen {
+      new MapK[In2, Out2, OptionT[In2, *], OptionT[Out2, *]] {
+        def mapK[A](value: OptionT[In2, A])(f: In2 ~> Out2): OptionT[Out2, A] =
           value.mapK(f)
       }
     }

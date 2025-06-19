@@ -12,7 +12,7 @@ import scala.annotation.implicitNotFound
 trait LiftScope[From[_], To[_]] {
 
   /**
-   * Modifies the context of `G[A]` using the given scope transformation in `From`.
+   * Modifies the context of `To[A]` using the given scope transformation in `From`.
    *
    * @note
    *   This method is usually best implemented by a `mapK` method on `To`.
@@ -40,6 +40,17 @@ trait LiftScope[From[_], To[_]] {
 
 object LiftScope {
 
+  type Derived[From[_], Wrapper[_[_], _]] = LiftScope[From, Wrapper[From, *]]
+
+  def apply[From[_], To[_]](implicit ev: LiftScope[From, To]): LiftScope[From, To] = ev
+
+  private[lifts] trait Identity[F[_]] extends LiftScope[F, F] {
+    def limitedMapK[A](value: F[A])(scope: F ~> F): F[A] = scope(value)
+    override def liftScope(scope: F ~> F): F ~> F = scope
+  }
+
+  private[this] val _identity = new Identity[({ type L[_] = Any })#L] {}
+
   private[this] final class Composed[From[_], Middle[_], To[_]] private (
       inner: LiftScope[From, Middle],
       outer: LiftScope[Middle, To],
@@ -55,30 +66,12 @@ object LiftScope {
         inner: LiftScope[From, Middle],
         outer: LiftScope[Middle, To],
     ): LiftScope[From, To] =
-      if (inner.isInstanceOf[Identity]) outer.asInstanceOf[LiftScope[From, To]]
-      else if (outer.isInstanceOf[Identity]) inner.asInstanceOf[LiftScope[From, To]]
+      if (inner.isInstanceOf[Identity[From]]) outer.asInstanceOf[LiftScope[From, To]]
+      else if (outer.isInstanceOf[Identity[Middle]]) inner.asInstanceOf[LiftScope[From, To]]
       else new Composed(inner, outer)
   }
 
-  type Derived[From[_], Wrapper[_[_], _]] = LiftScope[From, Wrapper[From, *]]
-
-  def apply[From[_], To[_]](implicit ls: LiftScope[From, To]): LiftScope[From, To] = ls
-
-  implicit def id[F[_]]: LiftScope[F, F] =
-    new LiftScope[F, F] with Identity {
-      def limitedMapK[A](value: F[A])(scope: F ~> F): F[A] = scope(value)
-      override def liftScope(scope: F ~> F): F ~> F = scope
-    }
-
-  implicit def optionT[From[_], To[_]](implicit
-      inner: LiftScope[From, To]
-  ): LiftScope[From, OptionT[To, *]] =
-    inner.andThen {
-      new LiftScope[To, OptionT[To, *]] {
-        def limitedMapK[A](value: OptionT[To, A])(scope: To ~> To): OptionT[To, A] =
-          value.mapK(scope)
-      }
-    }
+  implicit def id[F[_]]: LiftScope[F, F] = _identity.asInstanceOf[Identity[F]]
 
   implicit def eitherT[From[_], To[_], L](implicit
       inner: LiftScope[From, To]
@@ -106,6 +99,16 @@ object LiftScope {
     inner.andThen {
       new LiftScope[To, Kleisli[To, A, *]] {
         def limitedMapK[B](value: Kleisli[To, A, B])(scope: To ~> To): Kleisli[To, A, B] =
+          value.mapK(scope)
+      }
+    }
+
+  implicit def optionT[From[_], To[_]](implicit
+      inner: LiftScope[From, To]
+  ): LiftScope[From, OptionT[To, *]] =
+    inner.andThen {
+      new LiftScope[To, OptionT[To, *]] {
+        def limitedMapK[A](value: OptionT[To, A])(scope: To ~> To): OptionT[To, A] =
           value.mapK(scope)
       }
     }

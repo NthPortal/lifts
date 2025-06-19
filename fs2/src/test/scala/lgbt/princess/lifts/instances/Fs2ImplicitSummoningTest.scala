@@ -1,15 +1,16 @@
 package lgbt.princess.lifts.instances
 
 import cats.data.OptionT
-import cats.effect.IO
+import cats.effect.{IO, MonadCancel, Resource}
 import fs2.Stream
 import lgbt.princess.lifts._
-import lgbt.princess.lifts.instances.fs2support._
+import lgbt.princess.lifts.instances.fs2Support._
 
 object Fs2ImplicitSummoningTest {
 
   def `Stream instances for IO`(): Unit = {
     LiftValue[IO, Stream[IO, *]]
+    LiftValue[Resource[IO, *], Stream[IO, *]]
     LiftScope[IO, Stream[IO, *]]
     LiftKind[IO, Stream[IO, *]]
     MapK[IO, OptionT[IO, *], Stream[IO, *], Stream[OptionT[IO, *], *]]
@@ -18,8 +19,11 @@ object Fs2ImplicitSummoningTest {
     LiftKind2[IO, OptionT[IO, *], Stream[IO, *], Stream[OptionT[IO, *], *]]
   }
 
-  def `Stream instances for abstract types`[F[_], G[_]](): Unit = {
+  def `Stream instances for abstract types`[F[_], G[_]]()(implicit
+      F: MonadCancel[F, ?]
+  ): Unit = {
     LiftValue[F, Stream[F, *]]
+    LiftValue[Resource[F, *], Stream[F, *]]
     LiftScope[F, Stream[F, *]]
     LiftKind[F, Stream[F, *]]
     MapK[F, G, Stream[F, *], Stream[G, *]]

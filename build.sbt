@@ -79,7 +79,7 @@ lazy val lifts = tlCrossRootProject
     mtl,
     ce,
     free,
-    fs2support
+    fs2support,
   )
 
 lazy val core =

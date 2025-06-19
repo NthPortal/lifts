@@ -8,7 +8,7 @@ import fs2.Stream
 import lgbt.princess.lifts.laws.Unlift
 import org.scalacheck.Arbitrary
 
-trait Fs2Suite extends CESuite {
+abstract class Fs2Suite extends CESuite {
   implicit def unliftStream[From[_], To[_]](implicit
       From: Concurrent[From],
       outer: Unlift[From, To]

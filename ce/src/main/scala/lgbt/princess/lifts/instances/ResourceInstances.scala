@@ -8,7 +8,6 @@ trait ResourceInstances extends LowPriorityResourceInstances {
   private[this] def liftValueResource0[F[_]]: LiftValue[F, Resource[F, *]] =
     new LiftValue[F, Resource[F, *]] {
       def liftF[A](value: F[A]): Resource[F, A] = Resource.eval(value)
-      val liftK: F ~> Resource[F, *] = Resource.liftK
     }
 
   implicit def liftValueResource[From[_], To[_]](implicit
@@ -23,7 +22,6 @@ trait ResourceInstances extends LowPriorityResourceInstances {
     inner.andThen {
       new LiftKind[To, Resource[To, *]] {
         def liftF[A](value: To[A]): Resource[To, A] = Resource.eval(value)
-        val liftK: To ~> Resource[To, *] = Resource.liftK
         def limitedMapK[A](value: Resource[To, A])(scope: To ~> To): Resource[To, A] =
           value.mapK(scope)
       }
@@ -52,7 +50,6 @@ sealed trait LowPriorityResourceInstances {
     inner.andThen {
       new LiftKind1[To, Resource[To, *]] {
         def liftF[A](value: To[A]): Resource[To, A] = Resource.eval(value)
-        val liftK: To ~> Resource[To, *] = Resource.liftK
         def mapK[A](value: Resource[To, A])(f: To ~> To): Resource[To, A] =
           value.mapK(f)
       }

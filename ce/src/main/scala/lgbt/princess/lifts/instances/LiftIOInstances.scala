@@ -5,7 +5,7 @@ import cats.effect.{IO, LiftIO}
 
 trait LiftIOInstances {
   implicit def liftValueLiftIO[To[_]](implicit liftIO: LiftIO[To]): LiftValue[IO, To] =
-    new LiftValue.LiftKFromLiftF[IO, To] {
+    new LiftValue[IO, To] {
       def liftF[A](value: IO[A]): To[A] = liftIO.liftIO(value)
     }
 }

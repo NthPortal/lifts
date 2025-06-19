@@ -11,13 +11,18 @@ import munit.CatsEffectSuite
 import org.scalacheck.Arbitrary
 
 class LiftIOLawTests extends CatsEffectSuite with CESuite {
+  // kind of the only way to test `LiftIO`
   implicit def eqIO[A: Eq]: Eq[IO[A]] =
     Eq.by(_.unsafeRunSync())
 
+  // not a particularly broad subset of possible `IO` values, but at least
+  // it makes the `Eq` instance correct
   implicit def arbitraryIO[A](implicit arb: Arbitrary[A]): Arbitrary[IO[A]] =
     Arbitrary(arb.arbitrary.map(IO.pure))
 
-  def test[F[_]: LiftIO](typeName: String)(implicit eqFStr: Eq[F[String]], unlift: Unlift[F, IO]): Unit = {
+  def test[F[_]: LiftIO](
+      typeName: String
+  )(implicit eqFStr: Eq[F[String]], unlift: Unlift[F, IO]): Unit = {
     checkAll(s"LiftValue[IO, $typeName]", LiftValueTests[IO, F].liftValue[String])
   }
   test[IO]("IO")

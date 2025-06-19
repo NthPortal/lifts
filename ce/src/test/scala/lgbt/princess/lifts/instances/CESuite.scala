@@ -53,12 +53,14 @@ trait CESuite extends DisciplineSuite {
       }
     }
 
+  // TODO: use `Resource#allocated` instead of `#use`
   implicit def eqResource[F[_], A](implicit
       F: MonadCancelThrow[F],
       eqFA: Eq[F[A]]
   ): Eq[Resource[F, A]] =
     Eq.by(_.use(F.pure))
 
+  // TODO: add arbitrary release effect
   implicit def arbitraryResource[F[_], A](implicit
       arbFA: Arbitrary[F[A]]
   ): Arbitrary[Resource[F, A]] =

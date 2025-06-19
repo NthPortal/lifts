@@ -21,6 +21,23 @@ trait LiftKind2[In1[_], Out1[_], In2[_], Out2[_]] extends MapK[In1, Out1, In2, O
 
 object LiftKind2 {
 
+  type Derived[In[_], Out[_], Wrapper[_[_], _]] =
+    LiftKind2[In, Out, Wrapper[In, *], Wrapper[Out, *]]
+
+  def apply[In1[_], Out1[_], In2[_], Out2[_]](implicit
+      ev: LiftKind2[In1, Out1, In2, Out2]
+  ): LiftKind2[In1, Out1, In2, Out2] = ev
+
+  private[this] final class Identity[In[_], Out[_]]
+      extends LiftKind2[In, Out, In, Out]
+      with MapK.Identity[In, Out] {
+    def liftValueInput: LiftValue[In, In] = LiftValue.id
+    def liftValueOutput: LiftValue[Out, Out] = LiftValue.id
+  }
+
+  private[this] val _identity =
+    new Identity[({ type L[_] = Any })#L, ({ type L[_] = Any })#L]
+
   private[this] final class Composed[In1[_], Out1[_], In2[_], Out2[_], In3[_], Out3[_]] private (
       inner: LiftKind2[In1, Out1, In2, Out2],
       outer: LiftKind2[In2, Out2, In3, Out3],
@@ -40,37 +57,15 @@ object LiftKind2 {
         inner: LiftKind2[In1, Out1, In2, Out2],
         outer: LiftKind2[In2, Out2, In3, Out3],
     ): LiftKind2[In1, Out1, In3, Out3] =
-      if (inner.isInstanceOf[Identity]) outer.asInstanceOf[LiftKind2[In1, Out1, In3, Out3]]
-      else if (outer.isInstanceOf[Identity]) inner.asInstanceOf[LiftKind2[In1, Out1, In3, Out3]]
+      if (inner.isInstanceOf[Identity[In1, Out1]])
+        outer.asInstanceOf[LiftKind2[In1, Out1, In3, Out3]]
+      else if (outer.isInstanceOf[Identity[In2, Out2]])
+        inner.asInstanceOf[LiftKind2[In1, Out1, In3, Out3]]
       else new Composed(inner, outer)
   }
 
-  type Derived[In[_], Out[_], Wrapper[_[_], _]] =
-    LiftKind2[In, Out, Wrapper[In, *], Wrapper[Out, *]]
-
-  def apply[In1[_], Out1[_], In2[_], Out2[_]](implicit
-      ev: LiftKind2[In1, Out1, In2, Out2]
-  ): LiftKind2[In1, Out1, In2, Out2] = ev
-
   implicit def id[In[_], Out[_]]: LiftKind2[In, Out, In, Out] =
-    new LiftKind2[In, Out, In, Out] with Identity {
-      val liftValueInput: LiftValue[In, In] = LiftValue.id
-      val liftValueOutput: LiftValue[Out, Out] = LiftValue.id
-      def mapK[A](value: In[A])(f: In ~> Out): Out[A] = f(value)
-      override def liftFunctionK(f: In ~> Out): In ~> Out = f
-    }
-
-  implicit def optionT[In1[_], Out1[_], In2[_]: Functor, Out2[_]: Functor](implicit
-      inner: LiftKind2[In1, Out1, In2, Out2]
-  ): LiftKind2[In1, Out1, OptionT[In2, *], OptionT[Out2, *]] =
-    inner.andThen {
-      new LiftKind2[In2, Out2, OptionT[In2, *], OptionT[Out2, *]] {
-        val liftValueInput: LiftValue[In2, OptionT[In2, *]] = LiftValue.optionT
-        val liftValueOutput: LiftValue[Out2, OptionT[Out2, *]] = LiftValue.optionT
-        def mapK[A](value: OptionT[In2, A])(f: In2 ~> Out2): OptionT[Out2, A] =
-          value.mapK(f)
-      }
-    }
+    _identity.asInstanceOf[Identity[In, Out]]
 
   implicit def eitherT[In1[_], Out1[_], In2[_]: Functor, Out2[_]: Functor, L](implicit
       inner: LiftKind2[In1, Out1, In2, Out2]
@@ -104,6 +99,18 @@ object LiftKind2 {
         val liftValueInput: LiftValue[In2, Kleisli[In2, A, *]] = LiftValue.kleisli
         val liftValueOutput: LiftValue[Out2, Kleisli[Out2, A, *]] = LiftValue.kleisli
         def mapK[B](value: Kleisli[In2, A, B])(f: In2 ~> Out2): Kleisli[Out2, A, B] =
+          value.mapK(f)
+      }
+    }
+
+  implicit def optionT[In1[_], Out1[_], In2[_]: Functor, Out2[_]: Functor](implicit
+      inner: LiftKind2[In1, Out1, In2, Out2]
+  ): LiftKind2[In1, Out1, OptionT[In2, *], OptionT[Out2, *]] =
+    inner.andThen {
+      new LiftKind2[In2, Out2, OptionT[In2, *], OptionT[Out2, *]] {
+        val liftValueInput: LiftValue[In2, OptionT[In2, *]] = LiftValue.optionT
+        val liftValueOutput: LiftValue[Out2, OptionT[Out2, *]] = LiftValue.optionT
+        def mapK[A](value: OptionT[In2, A])(f: In2 ~> Out2): OptionT[Out2, A] =
           value.mapK(f)
       }
     }

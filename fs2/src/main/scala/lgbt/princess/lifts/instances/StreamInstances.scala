@@ -7,9 +7,8 @@ import fs2.Stream
 
 trait StreamInstances extends LowPriorityStreamInstances {
   private[this] def liftValueStream0[F[_]]: LiftValue[F, Stream[F, *]] =
-    new LiftValue.LiftKFromLiftF[F, Stream[F, *]] {
-      def liftF[A](value: F[A]): Stream[F, A] =
-        Stream.eval(value)
+    new LiftValue[F, Stream[F, *]] {
+      def liftF[A](value: F[A]): Stream[F, A] = Stream.eval(value)
     }
 
   implicit def liftValueStream[From[_], To[_]](implicit
@@ -21,7 +20,7 @@ trait StreamInstances extends LowPriorityStreamInstances {
       inner: LiftKind[From, To]
   ): LiftKind[From, Stream[To, *]] =
     inner.andThen {
-      new LiftKind[To, Stream[To, *]] with LiftValue.LiftKFromLiftF[To, Stream[To, *]] {
+      new LiftKind[To, Stream[To, *]] {
         def liftF[A](value: To[A]): Stream[To, A] = Stream.eval(value)
         def limitedMapK[A](value: Stream[To, A])(scope: To ~> To): Stream[To, A] =
           value.translate(scope)
@@ -47,7 +46,7 @@ sealed trait LowPriorityStreamInstances {
       inner: LiftValue[From, Resource[To, *]]
   ): LiftValue[From, Stream[To, *]] =
     inner.andThen {
-      new LiftValue.LiftKFromLiftF[Resource[To, *], Stream[To, *]] {
+      new LiftValue[Resource[To, *], Stream[To, *]] {
         def liftF[A](value: Resource[To, A]): Stream[To, A] =
           Stream.resource(value)
       }
@@ -57,7 +56,7 @@ sealed trait LowPriorityStreamInstances {
       inner: LiftKind1[From, To]
   ): LiftKind1[From, Stream[To, *]] =
     inner.andThen {
-      new LiftKind1[To, Stream[To, *]] with LiftValue.LiftKFromLiftF[To, Stream[To, *]] {
+      new LiftKind1[To, Stream[To, *]] {
         def liftF[A](value: To[A]): Stream[To, A] = Stream.eval(value)
         def mapK[A](value: Stream[To, A])(f: To ~> To): Stream[To, A] =
           value.translate(f)

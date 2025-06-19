@@ -25,7 +25,10 @@ trait LiftValue[From[_], To[_]] {
    * @note
    *   This method is usually best implemented by a `liftK` method on `To`'s companion object.
    */
-  def liftK: From ~> To
+  def liftK: From ~> To =
+    new (From ~> To) {
+      def apply[A](fa: From[A]): To[A] = liftF(fa)
+    }
 
   /** @return an instance that lifts `From` to `To` and then `To` to `Last` */
   def andThen[Last[_]](that: LiftValue[To, Last]): LiftValue[From, Last] =
@@ -38,45 +41,9 @@ trait LiftValue[From[_], To[_]] {
 
 object LiftValue extends LowPriorityLiftValueImplicits0 {
 
-  private[this] final class Composed[From[_], Middle[_], To[_]] private (
-      inner: LiftValue[From, Middle],
-      outer: LiftValue[Middle, To]
-  ) extends LiftValue[From, To] {
-    def liftF[A](value: From[A]): To[A] = outer.liftF(inner.liftF(value))
-    val liftK: From ~> To = inner.liftK.andThen(outer.liftK)
-  }
-
-  private object Composed {
-    def apply[From[_], Middle[_], To[_]](
-        inner: LiftValue[From, Middle],
-        outer: LiftValue[Middle, To]
-    ): LiftValue[From, To] =
-      if (inner.isInstanceOf[Identity]) outer.asInstanceOf[LiftValue[From, To]]
-      else if (outer.isInstanceOf[Identity]) inner.asInstanceOf[LiftValue[From, To]]
-      else new Composed(inner, outer)
-  }
-
   type Derived[From[_], Wrapper[_[_], _]] = LiftValue[From, Wrapper[From, *]]
 
-  def apply[From[_], To[_]](implicit lv: LiftValue[From, To]): LiftValue[From, To] = lv
-
-  /**
-   * An instance that derives [[LiftValue.liftF `liftF`]] from [[LiftValue.liftK `liftK`]].
-   */
-  trait LiftFFromLiftK[From[_], To[_]] extends LiftValue[From, To] {
-    val liftK: From ~> To
-    final def liftF[A](value: From[A]): To[A] = liftK(value)
-  }
-
-  /**
-   * An instance that derives [[LiftValue.liftK `liftK`]] from [[LiftValue.liftF `liftF`]].
-   */
-  trait LiftKFromLiftF[From[_], To[_]] extends LiftValue[From, To] {
-    final def liftK: From ~> To =
-      new (From ~> To) {
-        def apply[A](fa: From[A]): To[A] = liftF(fa)
-      }
-  }
+  def apply[From[_], To[_]](implicit ev: LiftValue[From, To]): LiftValue[From, To] = ev
 
   /**
    * @return
@@ -84,25 +51,36 @@ object LiftValue extends LowPriorityLiftValueImplicits0 {
    *   `From` into the higher-kinded type `To`
    */
   def fromLiftK[From[_], To[_]](lift: From ~> To): LiftValue[From, To] =
-    new LiftFFromLiftK[From, To] {
-      val liftK: From ~> To = lift
+    new LiftValue[From, To] {
+      override val liftK: From ~> To = lift
+      def liftF[A](value: From[A]): To[A] = liftK(value)
     }
 
-  implicit def id[F[_]]: LiftValue[F, F] =
-    new LiftValue[F, F] with Identity {
-      def liftF[A](value: F[A]): F[A] = value
-      val liftK: F ~> F = FunctionK.id
-    }
+  private[lifts] trait Identity[F[_]] extends LiftValue[F, F] {
+    final def liftF[A](value: F[A]): F[A] = value
+    override final val liftK: F ~> F = FunctionK.id
+  }
 
-  implicit def optionT[From[_], To[_]: Functor](implicit
-      inner: LiftValue[From, To]
-  ): LiftValue[From, OptionT[To, *]] =
-    inner.andThen {
-      new LiftValue[To, OptionT[To, *]] {
-        def liftF[A](value: To[A]): OptionT[To, A] = OptionT.liftF(value)
-        val liftK: To ~> OptionT[To, *] = OptionT.liftK
-      }
-    }
+  private[this] val _identity = new Identity[({ type L[_] = Any })#L] {}
+
+  private[this] final class Composed[From[_], Middle[_], To[_]] private (
+      inner: LiftValue[From, Middle],
+      outer: LiftValue[Middle, To]
+  ) extends LiftValue[From, To] {
+    def liftF[A](value: From[A]): To[A] = outer.liftF(inner.liftF(value))
+  }
+
+  private object Composed {
+    def apply[From[_], Middle[_], To[_]](
+        inner: LiftValue[From, Middle],
+        outer: LiftValue[Middle, To]
+    ): LiftValue[From, To] =
+      if (inner.isInstanceOf[Identity[From]]) outer.asInstanceOf[LiftValue[From, To]]
+      else if (outer.isInstanceOf[Identity[Middle]]) inner.asInstanceOf[LiftValue[From, To]]
+      else new Composed(inner, outer)
+  }
+
+  implicit def id[F[_]]: LiftValue[F, F] = _identity.asInstanceOf[Identity[F]]
 
   implicit def eitherT[From[_], To[_]: Functor, L](implicit
       inner: LiftValue[From, To]
@@ -110,7 +88,6 @@ object LiftValue extends LowPriorityLiftValueImplicits0 {
     inner.andThen {
       new LiftValue[To, EitherT[To, L, *]] {
         def liftF[A](value: To[A]): EitherT[To, L, A] = EitherT.liftF(value)
-        val liftK: To ~> EitherT[To, L, *] = EitherT.liftK
       }
     }
 
@@ -120,7 +97,6 @@ object LiftValue extends LowPriorityLiftValueImplicits0 {
     inner.andThen {
       new LiftValue[To, IorT[To, L, *]] {
         def liftF[A](value: To[A]): IorT[To, L, A] = IorT.right(value)
-        val liftK: To ~> IorT[To, L, *] = IorT.liftK
       }
     }
 
@@ -130,27 +106,15 @@ object LiftValue extends LowPriorityLiftValueImplicits0 {
     inner.andThen {
       new LiftValue[To, Kleisli[To, A, *]] {
         def liftF[B](value: To[B]): Kleisli[To, A, B] = Kleisli.liftF(value)
-        val liftK: To ~> Kleisli[To, A, *] = Kleisli.liftK
       }
     }
 
-  implicit def writerT[From[_], To[_]: Applicative, L: Monoid](implicit
+  implicit def optionT[From[_], To[_]: Functor](implicit
       inner: LiftValue[From, To]
-  ): LiftValue[From, WriterT[To, L, *]] =
+  ): LiftValue[From, OptionT[To, *]] =
     inner.andThen {
-      new LiftValue[To, WriterT[To, L, *]] {
-        def liftF[A](value: To[A]): WriterT[To, L, A] = WriterT.liftF(value)
-        val liftK: To ~> WriterT[To, L, *] = WriterT.liftK
-      }
-    }
-
-  implicit def stateT[From[_], To[_]: Applicative, S](implicit
-      inner: LiftValue[From, To]
-  ): LiftValue[From, StateT[To, S, *]] =
-    inner.andThen {
-      new LiftValue[To, StateT[To, S, *]] {
-        def liftF[A](value: To[A]): StateT[To, S, A] = StateT.liftF(value)
-        val liftK: To ~> StateT[To, S, *] = StateT.liftK
+      new LiftValue[To, OptionT[To, *]] {
+        def liftF[A](value: To[A]): OptionT[To, A] = OptionT.liftF(value)
       }
     }
 
@@ -160,21 +124,38 @@ object LiftValue extends LowPriorityLiftValueImplicits0 {
     inner.andThen {
       new LiftValue[To, RWST[To, E, L, S, *]] {
         def liftF[A](value: To[A]): RWST[To, E, L, S, A] = RWST.liftF(value)
-        val liftK: To ~> RWST[To, E, L, S, *] = RWST.liftK
+      }
+    }
+
+  implicit def stateT[From[_], To[_]: Applicative, S](implicit
+      inner: LiftValue[From, To]
+  ): LiftValue[From, StateT[To, S, *]] =
+    inner.andThen {
+      new LiftValue[To, StateT[To, S, *]] {
+        def liftF[A](value: To[A]): StateT[To, S, A] = StateT.liftF(value)
+      }
+    }
+
+  implicit def writerT[From[_], To[_]: Applicative, L: Monoid](implicit
+      inner: LiftValue[From, To]
+  ): LiftValue[From, WriterT[To, L, *]] =
+    inner.andThen {
+      new LiftValue[To, WriterT[To, L, *]] {
+        def liftF[A](value: To[A]): WriterT[To, L, A] = WriterT.liftF(value)
       }
     }
 }
 
 sealed trait LowPriorityLiftValueImplicits0 extends LowPriorityLiftValueImplicits1 {
   implicit def liftValueInputFromLiftKind2[F[_], G[_], H[_], I[_]](implicit
-                                                                   lk2: LiftKind2[F, G, H, I]
+      lk2: LiftKind2[F, G, H, I]
   ): LiftValue[F, H] =
     lk2.liftValueInput
 }
 
 sealed trait LowPriorityLiftValueImplicits1 {
   implicit def liftValueOutputFromLiftKind2[F[_], G[_], H[_], I[_]](implicit
-                                                                    lk2: LiftKind2[F, G, H, I]
+      lk2: LiftKind2[F, G, H, I]
   ): LiftValue[G, I] =
     lk2.liftValueOutput
 }
